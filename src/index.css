@@ -1,4 +1,4 @@
-:root {
+/* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -65,4 +65,57 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+} */
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* page background */
+body {
+  background-color: #f6f7f7; /* light gray similar to screenshot */
 }
+
+/* Dotted pattern (right side background) */
+.dotted-grid {
+  background-image:
+    radial-gradient(#cfcfcf 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.35;
+}
+
+/* card shadow & radius similar to PayU */
+.signup-card {
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* subtle input border */
+.input-field {
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+}
+
+/* green button exact-ish */
+.payu-btn {
+  background: linear-gradient(180deg, #1fa67a, #179869);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 9999px;
+  letter-spacing: 0.6px;
+  box-shadow: 0 6px 0 rgba(0,0,0,0.03);
+}
+
+/* small helpers for icon circle */
+.icon-bullet {
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle at 30% 30%, #fff 0%, #fff 30%, #333 31%);
+  border-radius: 50%;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color: white;
+}
+

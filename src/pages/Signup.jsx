@@ -2,6 +2,14 @@ import { useState } from "react";
 import { signup } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import rekerPayLogo from "../assets/Reker-logo.png";
+import BlinkitPg from "../assets/Blinkit.png";
+import ShopifyPg from "../assets/shopify.jpg";
+import ZomatoPg from "../assets/Zomato-logo.png";
+import NammaMetroPg from "../assets/Namma_Metro.png";
+import MyntraPg from "../assets/Myntra-Logo.png";
+import SwiggyPg from "../assets/Swiggy_Logo.png";
+import KFCPg from "../assets/KFC_logo.png";
+
 
 export default function Signup() {
   const [form, setForm] = useState({
@@ -73,17 +81,21 @@ export default function Signup() {
             <div className="flex-grow border-t border-gray-300" />
           </div>
 
-          <div className="mt-6 flex items-center gap-4">
-            <div className="bg-white p-3 rounded shadow-sm">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Shopify_logo_2018.png" className="h-6" />
-            </div>
-            <div className="bg-white p-3 rounded shadow-sm">
-              <img src="https://seeklogo.com/images/B/boat-logo-6A8E224ED8-seeklogo.com.png" className="h-6" />
-            </div>
-            <div className="bg-white p-3 rounded shadow-sm">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Netflix-icon.svg" className="h-6" />
+          {/* SCROLLING LOGOS (RIGHT → LEFT) */}
+          <div className="overflow-hidden w-full mt-6">
+            <div className="logo-slider">
+
+              {/* ORIGINAL LOGOS */}
+              <img src={BlinkitPg} className="logo-item" />
+              <img src={ZomatoPg} className="logo-item" />
+              <img src={ShopifyPg} className="logo-item" />
+              <img src={NammaMetroPg} className="logo-item" />
+              <img src={MyntraPg} className="logo-item" />
+              <img src={SwiggyPg} className="logo-item" />
+              <img src={KFCPg} className="logo-item" />
             </div>
           </div>
+
         </div>
 
         {/* RIGHT PANEL */}
@@ -162,23 +174,23 @@ export default function Signup() {
             /> */}
             {/* PASSWORD FIELD */}
 
-          <div className="relative mt-2">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter your RekerPay Password"
-              className="input-field p-3 w-full"
-              onChange={handleChange}
-            />
+            <div className="relative mt-2">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your RekerPay Password"
+                className="input-field p-3 w-full"
+                onChange={handleChange}
+              />
 
-            {/* Eye Icon */}
-            <span
-              className="absolute right-3 top-3 cursor-pointer text-gray-600"
-              onClick={() => setShowPassword((prev) => !prev)}
-            >
-              {showPassword ? "🙈" : "👁️"}
-            </span>
-          </div>
+              {/* Eye Icon */}
+              <span
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </span>
+            </div>
 
             <label className="text-sm font-medium text-gray-700 mt-4 block text-left">Mobile*</label>
             <div className="flex mt-2">
@@ -210,3 +222,4 @@ export default function Signup() {
     </div>
   );
 }
+

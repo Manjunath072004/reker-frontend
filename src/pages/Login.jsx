@@ -24,9 +24,24 @@ export default function Login() {
       await login(form);
       navigate("/merchant-dashboard");
     } catch (err) {
-      alert("Login Failed");
-      console.log(err);
+      console.log("💥 FULL ERROR OBJECT:", err);
+
+      if (err.response) {
+        console.log("💥 BACKEND STATUS:", err.response.status);
+        console.log("💥 BACKEND ERROR DATA:", err.response.data);
+
+        alert(
+          err.response.data?.message ||
+          err.response.data?.detail ||
+          JSON.stringify(err.response.data) ||
+          "Login Failed (Server Error)"
+        );
+      } else {
+        console.log("💥 NO RESPONSE FROM SERVER");
+        alert("Network error — Backend not reachable");
+      }
     }
+
   };
 
   return (

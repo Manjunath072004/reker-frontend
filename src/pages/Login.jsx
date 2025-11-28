@@ -3,6 +3,7 @@ import { login } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import rekerPayLogo from "../assets/Reker-logo.png";
 import loginBg from "../assets/reker_login_image.jpeg";
+import { checkPhoneRegistered } from "../api/auth";
 
 
 export default function Login() {
@@ -18,6 +19,33 @@ export default function Login() {
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+
+  const handleLoginUsingOtp = async () => {
+    if (!form.phone || form.phone.length !== 10) {
+      alert("Please enter your 10 digit phone number");
+      return;
+    }
+
+    try {
+      // 🔥 CALL CHECK PHONE API
+      const res = await checkPhoneRegistered({ phone: form.phone });
+
+      // 🔥 If phone exists → go to OTP page
+      if (res.data.exists === true) {
+        navigate("/otp-verify", {
+          state: { phone: form.phone, mode: "login" },
+        });
+      } else {
+        alert("Phone number not registered. Please sign up.");
+      }
+
+    } catch (err) {
+      console.error("CHECK PHONE ERROR:", err);
+      alert("Server error while checking phone number");
+    }
+  };
+
 
   const handleLogin = async () => {
     try {
@@ -140,7 +168,10 @@ export default function Login() {
 
           {/* LINKS */}
           <div className="flex justify-between mt-3 text-sm">
-            <span className="text-green-600 cursor-pointer underline">
+            <span
+              className="text-green-600 cursor-pointer underline"
+              onClick={handleLoginUsingOtp}
+            >
               Login using OTP
             </span>
 
@@ -150,6 +181,7 @@ export default function Login() {
             >
               Forgot Password
             </span>
+
           </div>
 
           {/* LOGIN BUTTON */}

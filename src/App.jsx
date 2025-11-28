@@ -38,6 +38,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
+import ForgotPageScreen from "./pages/ForgotPageScreen";
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import OtpVerify from "./pages/OtpVerify";
@@ -52,6 +54,8 @@ import VerifyCoupon from "./pages/VerifyCoupon";
 import ApplyCoupon from "./pages/ApplyCoupon";
 import CouponList from "./pages/CouponList";
 
+import LandingPage from "./pages/LandingPage";
+
 
 
 export default function App() {
@@ -59,12 +63,15 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Landing Page */}
+          <Route path="/Landing-Page" element={<LandingPage />} />
           {/* Authentication */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/otp-verify" element={<OtpVerify />} />
+          <Route path="/forgot-password" element={<ForgotPageScreen />} />
 
-           {/* Merchant Module */}
+          {/* Merchant Module */}
           <Route path="/merchant-dashboard" element={<MerchantDashboard />} />
           <Route path="/merchant/create" element={<CreateMerchant />} />
           <Route path="/merchant/list" element={<MerchantList />} />
@@ -74,7 +81,7 @@ export default function App() {
           <Route path="/coupons/verify" element={<VerifyCoupon />} />
           <Route path="/coupons/apply" element={<ApplyCoupon />} />
           <Route path="/coupons/list" element={<CouponList />} />
-          
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

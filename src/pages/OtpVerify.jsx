@@ -46,7 +46,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { verifyOtp } from "../api/auth";   // ✅ ADDED BACK
+import { verifyOtp, resetPassword, resendOtp  } from "../api/auth";   // ✅ ADDED BACK
 import rekerPayLogo from "../assets/Reker-logo.png";
 import BlinkitPg from "../assets/Blinkit.png";
 import ShopifyPg from "../assets/shopify.jpg";
@@ -83,6 +83,24 @@ export default function OtpVerify() {
     }
   };
 
+  const handleResend = async () => {
+    if (!phone) {
+      alert("Phone number missing!");
+      return;
+    }
+
+    try {
+      await resendOtp({ phone });
+
+      alert("OTP resent successfully!");
+      setTimer(45); // reset timer
+    } catch (err) {
+      alert("Failed to resend OTP");
+      console.log(err);
+    }
+  };
+
+
   // 🔥 FIXED — REAL VERIFY OTP API CALL
   const handleSubmit = async () => {
     const finalOtp = otp.join("");
@@ -93,20 +111,42 @@ export default function OtpVerify() {
     }
 
     try {
+      // 1️⃣ Verify OTP first
       const res = await verifyOtp({
         phone: phone,
         otp: finalOtp,
       });
 
-      console.log("OTP VERIFY RESPONSE:", res.data);
-      alert("OTP Verified Successfully!");
+      // 2️⃣ If this OTP is for resetting password
+      if (state?.mode === "reset-password") {
+        const resetRes = await resetPassword({
+          phone: phone,
+          new_password: state.newPassword,
+        });
+
+        alert("Password Reset Successful! Please login.");
+        navigate("/login");
+        return;
+      }
+
+      // 3️⃣ If OTP Verify is for Login
+      if (state?.mode === "login") {
+        localStorage.setItem("token", res.data.token);
+        alert("Login Successful!");
+        navigate("/merchant-dashboard");
+        return;
+      }
+
+      // 4️⃣ OTP for Signup
+      alert("Account Verified! Please login.");
       navigate("/login");
 
     } catch (err) {
-      console.error("OTP ERROR:", err.response?.data || err);
-      alert("OTP verification failed!");
+      alert("OTP verification failed");
     }
   };
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-payuGray px-6 overflow-y-auto">
@@ -223,9 +263,13 @@ export default function OtpVerify() {
                   Resend OTP in 00:{timer.toString().padStart(2, "0")}
                 </p>
               ) : (
-                <button className="text-green-700 font-semibold">
+                <button
+                  className="text-green-700 font-semibold"
+                  onClick={handleResend}
+                >
                   Resend OTP
                 </button>
+
               )}
             </div>
 

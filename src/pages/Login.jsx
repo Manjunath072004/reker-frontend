@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useContext  } from "react";
 import { login } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import rekerPayLogo from "../assets/Reker-logo.png";
 import loginBg from "../assets/reker_login_image.jpeg";
 import { checkPhoneRegistered } from "../api/auth";
+import { AuthContext } from "../context/AuthContext";
 
 
 export default function Login() {
@@ -15,6 +16,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
+  const { saveToken } = useContext(AuthContext);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -49,7 +51,15 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      await login(form);
+      const res = await login(form);
+      console.log("LOGIN RESPONSE:", res.data);
+      const token = res.data?.tokens?.access;
+
+       if (!token) {
+        alert("Login failed: No token received from backend.");
+        return;
+      }
+      saveToken(token);
       navigate("/merchant-dashboard");
     } catch (err) {
       console.log("💥 FULL ERROR OBJECT:", err);

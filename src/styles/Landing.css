@@ -1,0 +1,32 @@
+/* Tailwind Directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scope everything to landing-page */
+.landing-page {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Navbar */
+.landing-navbar { z-index: 40; }
+
+/* Reveal animations */
+.landing-reveal { opacity: 0; transform: translateY(18px); transition: all 700ms cubic-bezier(.2,.9,.3,1); }
+.landing-reveal-visible { opacity: 1; transform: translateY(0); }
+
+/* Nav underline */
+.landing-nav-link { position: relative; display: inline-block; }
+.landing-nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%) scaleX(0);
+  width: 70%;
+  height: 3px;
+  background: linear-gradient(90deg,#1FA67A,#179869);
+  border-radius: 99px;
+  transition: transform 260ms cubic-bezier(.2,.9,.3,1);
+}
+.landing-nav-link:hover::after { transform: translateX(-50%) scaleX(1); }

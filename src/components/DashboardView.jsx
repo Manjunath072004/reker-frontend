@@ -7,6 +7,7 @@ import KpiCard from "./KpiCard";
 
 export default function DashboardView({
   merchant,
+  user,
   revenueSeries,
   transactions,
   dateRange,
@@ -18,11 +19,13 @@ export default function DashboardView({
       <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h3 className="text-2xl font-semibold">
-            {merchant ? merchant.business_name : "Merchant Name"}
+            {merchant?.business_name || user?.email || "User"}
           </h3>
+
           <p className="text-sm text-gray-500">
-            {merchant ? `Phone: ${merchant.phone}` : "Phone: —"}
+            Phone: {merchant?.phone || user?.phone || "—"}
           </p>
+
         </div>
 
         <div className="flex items-center gap-3">
@@ -134,11 +137,10 @@ export default function DashboardView({
                     <td>{t.method}</td>
                     <td>
                       <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          t.status === "SUCCESS"
+                        className={`px-2 py-1 rounded text-xs ${t.status === "SUCCESS"
                             ? "bg-green-50 text-green-700"
                             : "bg-red-50 text-red-700"
-                        }`}
+                          }`}
                       >
                         {t.status}
                       </span>

@@ -22,6 +22,7 @@ import SettingsView from "../components/SettingsView";
 
 
 export default function MerchantDashboard() {
+  const [user, setUser] = useState(null);
   const { token } = useContext(AuthContext);
   const [merchant, setMerchant] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -57,14 +58,25 @@ export default function MerchantDashboard() {
   );
 
   /* ---------------- API CALL ---------------- */
+  // useEffect(() => {
+  //   if (!token) return;
+  //   API.get("/merchants/me/", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   })
+  //     .then((res) => setMerchant(res.data))
+  //     .catch((err) => console.error("Failed to fetch merchant:", err));
+  // }, [token]);
+
   useEffect(() => {
     if (!token) return;
-    API.get("/merchants/me/", {
+
+    API.get("/auth/me/", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => setMerchant(res.data))
-      .catch((err) => console.error("Failed to fetch merchant:", err));
+      .then((res) => setUser(res.data))
+      .catch((err) => console.error("Failed to fetch user:", err));
   }, [token]);
+
 
   /* ---------------- FILTER TX ---------------- */
   const filteredTransactions = transactionsMock.filter((t) => {
@@ -90,10 +102,9 @@ export default function MerchantDashboard() {
   ];
 
   const menuClass = (k) =>
-    `flex items-center gap-3 cursor-pointer p-2 rounded-lg transition ${
-      active === k
-        ? "bg-green-50 border-l-4 border-green-600 text-green-700"
-        : "text-gray-700 hover:bg-green-50"
+    `flex items-center gap-3 cursor-pointer p-2 rounded-lg transition ${active === k
+      ? "bg-green-50 border-l-4 border-green-600 text-green-700"
+      : "text-gray-700 hover:bg-green-50"
     }`;
 
   /* ---------------- MAIN UI ---------------- */
@@ -102,9 +113,8 @@ export default function MerchantDashboard() {
 
       {/* SIDEBAR */}
       <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-white shadow-lg h-screen p-4 fixed left-0 top-0 border-r transition-all duration-300 z-40`}
+        className={`${sidebarOpen ? "w-64" : "w-20"
+          } bg-white shadow-lg h-screen p-4 fixed left-0 top-0 border-r transition-all duration-300 z-40`}
       >
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
@@ -153,9 +163,8 @@ export default function MerchantDashboard() {
 
       {/* MAIN CONTENT */}
       <div
-        className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? "ml-64" : "ml-20"
-        }`}
+        className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-20"
+          }`}
       >
         {/* TOPBAR */}
         <header className="flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-30">
@@ -212,6 +221,7 @@ export default function MerchantDashboard() {
           {active === "dashboard" && (
             <DashboardView
               merchant={merchant}
+              user={user}
               revenueSeries={revenueSeries}
               transactions={filteredTransactions}
               dateRange={dateRange}

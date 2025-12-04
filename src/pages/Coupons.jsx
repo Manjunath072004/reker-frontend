@@ -13,14 +13,18 @@ export default function Coupons() {
   const [loading, setLoading] = useState(false);
 
   // ----------------------------------
-  // LOAD ALL COUPONS (HISTORY)
+  // Loaded particular Coupon per -> user
   // ----------------------------------
   useEffect(() => {
     if (!token) return;
 
     listCoupons(token)
       .then((res) => {
-        setHistory(res.data);
+        if (res.data.message) {
+          setHistory([]); // no coupons available
+        } else {
+          setHistory(res.data); // normal case
+        }
         console.log("History:", res.data);
       })
       .catch((err) => console.log("History load error:", err));
@@ -158,7 +162,7 @@ export default function Coupons() {
         <h2 className="text-xl font-semibold mb-4">Coupon History</h2>
 
         {history.length === 0 ? (
-          <p className="text-gray-500">No coupons created.</p>
+          <div className="text-gray-500">No coupons available for your account</div>
         ) : (
           <table className="w-full border">
             <thead>
@@ -182,12 +186,8 @@ export default function Coupons() {
                       ? `${c.discount_value}%`
                       : `₹${c.discount_value}`}
                   </td>
-                  <td className="p-3">
-                    {new Date(c.expiry_date).toLocaleDateString()}
-                  </td>
-                  <td className="p-3">
-                    {c.used_count} / {c.usage_limit}
-                  </td>
+                  <td className="p-3">{new Date(c.expiry_date).toLocaleDateString()}</td>
+                  <td className="p-3">{c.used_count} / {c.usage_limit}</td>
                   <td className="p-3">
                     {c.is_active ? (
                       <span className="text-green-600">Active</span>
@@ -200,6 +200,7 @@ export default function Coupons() {
             </tbody>
           </table>
         )}
+
       </div>
     </div>
   );

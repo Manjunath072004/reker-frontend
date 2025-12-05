@@ -1,11 +1,9 @@
-import { useState, useContext  } from "react";
-import { login } from "../api/auth";
+import { useState, useContext } from "react";
+import { login, checkPhoneRegistered } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import rekerPayLogo from "../assets/Reker-logo.png";
 import loginBg from "../assets/reker_login_image.jpeg";
-import { checkPhoneRegistered } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
-
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -13,73 +11,101 @@ export default function Login() {
     password: "",
   });
 
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const { saveToken } = useContext(AuthContext);
 
+  // ---------------- HANDLE INPUT CHANGE ----------------
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" })); // clear specific field error
   };
 
+  // ---------------- LOGIN FORM VALIDATION --------------
+  const validateLoginForm = () => {
+    let newErrors = {};
 
+    const phone = form.phone.trim();
+    const password = form.password.trim();
+
+    // PHONE VALIDATION
+    if (!phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\d{10}$/.test(phone)) {
+      newErrors.phone = "Enter a valid 10-digit phone number";
+    }
+
+    // PASSWORD VALIDATION
+    if (!password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ---------------- LOGIN USING OTP ----------------
   const handleLoginUsingOtp = async () => {
     if (!form.phone || form.phone.length !== 10) {
-      alert("Please enter your 10 digit phone number");
+      setErrors((prev) => ({
+        ...prev,
+        phone: "Enter a valid 10-digit phone number",
+      }));
       return;
     }
 
     try {
-      // 🔥 CALL CHECK PHONE API
       const res = await checkPhoneRegistered({ phone: form.phone });
 
-      // 🔥 If phone exists → go to OTP page
       if (res.data.exists === true) {
         navigate("/otp-verify", {
           state: { phone: form.phone, mode: "login" },
         });
       } else {
-        alert("Phone number not registered. Please sign up.");
+        setErrors((prev) => ({
+          ...prev,
+          phone: "Phone number not registered. Please sign up.",
+        }));
       }
-
     } catch (err) {
-      console.error("CHECK PHONE ERROR:", err);
       alert("Server error while checking phone number");
     }
   };
 
-
+  // ---------------- NORMAL LOGIN ----------------
   const handleLogin = async () => {
+    if (!validateLoginForm()) return; // stop if errors exist
+
     try {
       const res = await login(form);
-      console.log("LOGIN RESPONSE:", res.data);
       const token = res.data?.tokens?.access;
 
-       if (!token) {
-        alert("Login failed: No token received from backend.");
+      if (!token) {
+        alert("Login failed: No token received from server.");
         return;
       }
+
       saveToken(token);
+
+      //  SHOW SUCCESS MESSAGE
+      alert("Login Successful!");
+
       navigate("/merchant-dashboard");
+
     } catch (err) {
-      console.log("💥 FULL ERROR OBJECT:", err);
-
       if (err.response) {
-        console.log("💥 BACKEND STATUS:", err.response.status);
-        console.log("💥 BACKEND ERROR DATA:", err.response.data);
-
         alert(
           err.response.data?.message ||
           err.response.data?.detail ||
-          JSON.stringify(err.response.data) ||
-          "Login Failed (Server Error)"
+          "Invalid phone number or password"
         );
       } else {
-        console.log("💥 NO RESPONSE FROM SERVER");
         alert("Network error — Backend not reachable");
       }
     }
-
   };
 
   return (
@@ -87,10 +113,7 @@ export default function Login() {
 
       {/* LEFT SIDE IMAGE */}
       <div className="w-1/2 relative">
-        <img
-          src={loginBg}
-          className="w-full h-full object-cover"
-        />
+        <img src={loginBg} className="w-full h-full object-cover" />
 
         <div className="absolute top-10 left-10">
           <img src={rekerPayLogo} className="h-20" />
@@ -100,15 +123,12 @@ export default function Login() {
           <p className="text-sm bg-yellow-400 px-3 py-1 text-black w-max">
             EVENT UPDATE
           </p>
-
           <h1 className="text-4xl font-bold mt-6 leading-snug">
             Powering Businesses. <br /> Touching Lives.
           </h1>
-
           <p className="mt-6 text-lg opacity-90">
             Supercharge your business growth with RekerPay
           </p>
-
           <button className="mt-6 text-white underline text-sm">
             MORE DETAILS &gt;
           </button>
@@ -122,36 +142,34 @@ export default function Login() {
           <div className="absolute left-0 top-0 h-full w-14 dotted-grid opacity-40 pointer-events-none"></div>
 
           {/* WELCOME TEXT */}
-          <p className="text-sm text-gray-500 mb-1 text-left">
-            Welcome to!
-          </p>
+          <p className="text-sm text-gray-500 mb-1 text-left">Welcome to!</p>
 
-          {/* REKERPAY TEXT - GOLD + GREEN GRADIENT */}
-          <div className="flex justify-start mb-6"> <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent tracking-wide">
-            RekerPay </h1>
+          <div className="flex justify-start mb-6">
+            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent tracking-wide">
+              RekerPay
+            </h1>
           </div>
 
-          {/* NEW PAGE TITLE */}
           <h2 className="text-lg font-semibold text-gray-800 mb-6 text-left">
             Get started with Your Phone Number
           </h2>
 
           {/* PHONE FIELD */}
           <label className="text-sm font-medium text-gray-700">Phone Number</label>
-
           <div className="flex mt-2">
-            <div className="inline-flex items-center px-3 border border-r-0 bg-gray-100 rounded-l">
-              +91
-            </div>
-
+            <div className="inline-flex items-center px-3 border border-r-0 bg-gray-100 rounded-l">+91</div>
             <input
               type="text"
               name="phone"
               placeholder="Enter your 10 digit mobile number"
-              className="input-field p-3 w-full rounded-none rounded-r"
+              className={`input-field p-3 w-full rounded-none rounded-r ${errors.phone ? "border border-red-500" : ""
+                }`}
               onChange={handleChange}
             />
           </div>
+          {errors.phone && (
+            <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+          )}
 
           {/* PASSWORD FIELD */}
           <label className="text-sm font-medium text-gray-700 mt-4 block">
@@ -163,11 +181,10 @@ export default function Login() {
               type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Enter your RekerPay Password"
-              className="input-field p-3 w-full"
+              className={`input-field p-3 w-full ${errors.password ? "border border-red-500" : ""
+                }`}
               onChange={handleChange}
             />
-
-            {/* Eye Icon */}
             <span
               className="absolute right-3 top-3 cursor-pointer text-gray-600"
               onClick={() => setShowPassword((prev) => !prev)}
@@ -175,6 +192,11 @@ export default function Login() {
               {showPassword ? "🙈" : "👁️"}
             </span>
           </div>
+          {errors.password && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.password}
+            </p>
+          )}
 
           {/* LINKS */}
           <div className="flex justify-between mt-3 text-sm">
@@ -191,7 +213,6 @@ export default function Login() {
             >
               Forgot Password
             </span>
-
           </div>
 
           {/* LOGIN BUTTON */}
@@ -202,7 +223,6 @@ export default function Login() {
             LOGIN
           </button>
 
-          {/* SIGNUP LINK */}
           <p className="text-sm text-center mt-4 text-gray-600">
             Don’t have an account with RekerPay?{" "}
             <span

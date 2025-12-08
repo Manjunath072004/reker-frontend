@@ -1,52 +1,6 @@
-// import { useLocation, useNavigate } from "react-router-dom";
-// import { verifyOtp } from "../api/auth";
-// import { useState } from "react";
-
-// export default function OtpVerify() {
-//   const [otp, setOtp] = useState("");
-//   const location = useLocation();
-//   const navigate = useNavigate();
-
-//   const phone = location.state?.phone;
-
-//   const handleVerify = async () => {
-//     try {
-//       const res = await verifyOtp({ phone, otp });
-//       alert("Account Verified! Please login.");
-//       navigate("/login");
-//     } catch (err) {
-//       alert("OTP verification failed");
-//       console.log(err);
-//     }
-//   };
-
-//   return (
-//     <div className="p-6 max-w-md mx-auto">
-//       <h1 className="text-xl font-bold">OTP Verification</h1>
-
-//       <input
-//         type="text"
-//         placeholder="Enter OTP"
-//         className="border p-2 w-full mt-3"
-//         onChange={(e) => setOtp(e.target.value)}
-//       />
-
-//       <button
-//         onClick={handleVerify}
-//         className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
-//       >
-//         Verify OTP
-//       </button>
-//     </div>
-//   );
-// }
-
-
-
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { verifyOtp, resetPassword, resendOtp  } from "../api/auth";   // ✅ ADDED BACK
+import { verifyOtp, resetPassword, resendOtp } from "../api/auth";   //  ADDED BACK
 import rekerPayLogo from "../assets/Reker-logo.png";
 import BlinkitPg from "../assets/Blinkit.png";
 import ShopifyPg from "../assets/shopify.jpg";
@@ -55,6 +9,7 @@ import NammaMetroPg from "../assets/Namma_Metro.png";
 import MyntraPg from "../assets/Myntra-Logo.png";
 import SwiggyPg from "../assets/Swiggy_Logo.png";
 import KFCPg from "../assets/KFC_logo.png";
+import { AuthContext } from "../context/AuthContext";
 
 export default function OtpVerify() {
   const { state } = useLocation();
@@ -63,6 +18,8 @@ export default function OtpVerify() {
   const phone = state?.phone || "";
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(45);
+
+  const { saveToken } = useContext(AuthContext);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -101,7 +58,7 @@ export default function OtpVerify() {
   };
 
 
-  // 🔥 FIXED — REAL VERIFY OTP API CALL
+  // FIXED — REAL VERIFY OTP API CALL
   const handleSubmit = async () => {
     const finalOtp = otp.join("");
 
@@ -111,13 +68,13 @@ export default function OtpVerify() {
     }
 
     try {
-      // 1️⃣ Verify OTP first
+      //  Verify OTP first
       const res = await verifyOtp({
         phone: phone,
         otp: finalOtp,
       });
 
-      // 2️⃣ If this OTP is for resetting password
+      //  If this OTP is for resetting password
       if (state?.mode === "reset-password") {
         const resetRes = await resetPassword({
           phone: phone,
@@ -129,15 +86,28 @@ export default function OtpVerify() {
         return;
       }
 
-      // 3️⃣ If OTP Verify is for Login
+      //  If OTP Verify is for Login
       if (state?.mode === "login") {
-        localStorage.setItem("token", res.data.token);
-        alert("Login Successful!");
+        const token = res.data?.tokens?.access;
+
+        alert("OTP sent to your mobile");
+        if (!token) {
+          alert("Login failed: No token received from server.");
+          return;
+        }
+
+        saveToken(token);
+
+        //  SHOW SUCCESS MESSAGE
+        alert("OTP verified successfully! Login Successful.");
+
         navigate("/merchant-dashboard");
+
         return;
       }
 
-      // 4️⃣ OTP for Signup
+
+      //  OTP for Signup
       alert("Account Verified! Please login.");
       navigate("/login");
 

@@ -9,8 +9,14 @@ export const createMerchant = async (data, token) => {
   });
 };
 
+// export const getMerchantProfile = async (token) => {
+//   return axios.get(`${API}/profile/`, {
+//     headers: { Authorization: `Bearer ${token}` },
+//   });
+// };
+
 export const getMerchantProfile = async (token) => {
-  return axios.get(`${API}/profile/`, {
+  return axios.get(`${API}/me/`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };

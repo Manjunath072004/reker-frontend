@@ -142,3 +142,17 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: slide-left 20s linear infinite;
+}
+
+

@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Footer from "../components/Footer";
+
+
 import rekerPayLogo from "../assets/Reker-logo.png";
-import loginBg from "../assets/reker_login_image.jpeg";
 import { checkEmailRegistered } from "../api/auth";
 
 export default function ForgotPasswordScreen() {
@@ -155,144 +158,162 @@ export default function ForgotPasswordScreen() {
         }
     };
 
-
     return (
-        <div className="min-h-screen flex bg-white">
+        <>
+            <div className="relative min-h-screen flex bg-gradient-to-br from-green-50 to-white overflow-hidden px-6 py-12">
+                {/* Top Left Logo */}
+                <img
+                    src={rekerPayLogo}
+                    className="h-16 absolute top-6 left-[70px] z-20"
+                />
 
-            {/* LEFT IMAGE */}
-            <div className="w-1/2 relative">
-                <img src={loginBg} className="w-full h-full object-cover" />
-                <div className="absolute top-10 left-10">
-                    <img src={rekerPayLogo} className="h-20" />
-                </div>
-                <div className="absolute bottom-20 left-14 text-white max-w-lg">
-                    <h1 className="text-4xl font-bold mt-6 leading-snug">
-                        Powering Businesses. <br /> Touching Lives.
-                    </h1>
-                </div>
-            </div>
+                {/* Decorative Blobs */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6, scale: 1.1 }}
+                    transition={{ duration: 2 }}
+                    className="absolute top-[-120px] left-[-120px] w-[400px] h-[400px] bg-green-300 rounded-full blur-3xl opacity-30"
+                />
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.5, scale: 1.1 }}
+                    transition={{ duration: 2 }}
+                    className="absolute bottom-[-150px] right-[-150px] w-[420px] h-[420px] bg-yellow-300 rounded-full blur-3xl opacity-20"
+                />
 
-            {/* RIGHT FORM CARD */}
-            <div className="w-1/2 flex items-center justify-center">
-                <div className="bg-white shadow-lg rounded-lg p-10 w-[430px] relative">
+                <div className="flex w-full max-w-7xl gap-12 relative z-10 mx-auto">
 
-                    <p className="text-sm text-gray-500 mb-1 text-left">Welcome to!</p>
+                    {/* ---------------- LEFT PANEL ---------------- */}
+                    <motion.div
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.7 }}
+                        className="flex-[0.6] flex flex-col justify-center px-8 lg:px-14"
+                    >
+                        <h3 className="text-3xl font-bold text-gray-800 mb-6">
+                            Secure Your Account
+                        </h3>
 
-                    <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent tracking-wide mb-6">
-                        RekerPay
-                    </h1>
+                        <ul className="space-y-6 text-gray-700 text-lg">
+                            <li className="flex gap-4 items-start">
+                                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">🔒</div>
+                                <p>Reset your password safely using OTP verification.</p>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">💡</div>
+                                <p>Choose a strong password to protect your account.</p>
+                            </li>
+                            <li className="flex gap-4 items-start">
+                                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">⚡</div>
+                                <p>Quickly regain access and continue managing payments.</p>
+                            </li>
+                        </ul>
 
-                    <h2 className="text-lg font-semibold text-gray-800 mb-6">
-                        Reset Your Password
-                    </h2>
-
-                    {/* EMAIL */}
-                    <label className="text-sm font-medium text-gray-700">Email</label>
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Enter your registered email"
-                        className={`input-field p-3 w-full mb-1 ${errors.email ? "border border-red-500" : ""
-                            }`}
-                        onChange={handleChange}
-                    />
-                    {errors.email && (
-                        <p className="text-xs text-red-600 mb-2">{errors.email}</p>
-                    )}
-
-                    {/* NEW PASSWORD */}
-                    <label className="text-sm font-medium text-gray-700">
-                        New Password
-                    </label>
-                    <div className="relative mt-2">
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            name="newPassword"
-                            placeholder="Enter new password"
-                            className={`input-field p-3 w-full mb-1 ${errors.newPassword ? "border border-red-500" : ""
-                                }`}
-                            onChange={handleChange}
-                        />
-
-                        <span
-                            className="absolute right-3 top-3 cursor-pointer text-gray-600"
-                            onClick={() => setShowPassword((prev) => !prev)}
-                        >
-                            {showPassword ? "🙈" : "👁️"}
-                        </span>
-                    </div>
-
-                    {/* PASSWORD STRENGTH METER */}
-                    {form.newPassword && (
-                        <div className="mt-2">
-                            <div className="w-full h-2 bg-gray-200 rounded">
-                                <div
-                                    className={`h-2 rounded ${passwordStrength.color}`}
-                                    style={{
-                                        width:
-                                            passwordStrength.level === "Weak Password"
-                                                ? "33%"
-                                                : passwordStrength.level === "Medium Strength"
-                                                    ? "66%"
-                                                    : "100%",
-                                    }}
-                                ></div>
-                            </div>
-                            <p
-                                className={`text-xs mt-1 ${passwordStrength.level === "Weak Password"
-                                        ? "text-red-600"
-                                        : passwordStrength.level === "Medium Strength"
-                                            ? "text-yellow-600"
-                                            : "text-green-600"
-                                    }`}
-                            >
-                                {passwordStrength.level}
+                        <div className="mt-16 text-center">
+                            <img
+                                src="https://img.icons8.com/fluency/300/password.png"
+                                alt="Password Security"
+                                className="h-36 mx-auto"
+                            />
+                            <p className="mt-4 text-gray-500 text-sm">
+                                Strong passwords keep your business and customers safe.
                             </p>
                         </div>
-                    )}
+                    </motion.div>
 
-                    {errors.newPassword && (
-                        <p className="text-xs text-red-600 mb-2">{errors.newPassword}</p>
-                    )}
-
-                    {/* CONFIRM PASSWORD */}
-                    <label className="text-sm font-medium text-gray-700">
-                        Confirm Password
-                    </label>
-                    <input
-                        type={showPassword ? "text" : "password"}
-                        name="confirmPassword"
-                        placeholder="Confirm new password"
-                        className={`input-field p-3 w-full mb-1 ${errors.confirmPassword ? "border border-red-500" : ""
-                            }`}
-                        onChange={handleChange}
-                    />
-                    {errors.confirmPassword && (
-                        <p className="text-xs text-red-600 mb-4">
-                            {errors.confirmPassword}
-                        </p>
-                    )}
-
-                    {/* RESET BUTTON */}
-                    <button
-                        onClick={handleResetPassword}
-                        className="mt-4 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-full font-semibold"
+                    {/* ---------------- RIGHT FORM CARD ---------------- */}
+                    <motion.div
+                        initial={{ y: 50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.8 }}
+                        className="flex-[0.4] flex flex-col"
                     >
-                        Reset Password
-                    </button>
+                        <div className="backdrop-blur-xl bg-white/40 border border-white/30 rounded-2xl shadow-xl p-10 w-full">
+                            <p className="text-sm text-gray-600">Reset your password</p>
+                            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-yellow-500 bg-clip-text text-transparent mt-2 mb-4">
+                                RekerPay
+                            </h1>
+                            <p className="text-sm text-gray-700 mb-6">
+                                Remembered your password?{" "}
+                                <span className="text-green-700 underline cursor-pointer" onClick={() => navigate("/login")}>
+                                    Login
+                                </span>
+                            </p>
 
-                    <p className="text-sm text-center mt-4 text-gray-600">
-                        Remembered your password?{" "}
-                        <span
-                            className="text-green-600 underline cursor-pointer"
-                            onClick={() => navigate("/login")}
-                        >
-                            Login
-                        </span>
-                    </p>
+                            {/* EMAIL */}
+                            <label className="text-sm font-medium text-gray-700">Email*</label>
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="Enter your registered email"
+                                onChange={handleChange}
+                                className={`mt-2 p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.email ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                            />
+                            {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+
+                            {/* NEW PASSWORD */}
+                            <label className="text-sm font-medium text-gray-700 mt-4 block">New Password*</label>
+                            <div className="relative mt-2">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="newPassword"
+                                    placeholder="Enter new password"
+                                    onChange={handleChange}
+                                    className={`p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.newPassword ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                                />
+                                <span
+                                    className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? "🙈" : "👁️"}
+                                </span>
+                            </div>
+
+                            {form.newPassword && (
+                                <div className="mt-2">
+                                    <div className="w-full h-2 bg-gray-200 rounded">
+                                        <div
+                                            className={`h-2 rounded ${passwordStrength.color}`}
+                                            style={{
+                                                width:
+                                                    passwordStrength.level === "Weak Password"
+                                                        ? "33%"
+                                                        : passwordStrength.level === "Medium Strength"
+                                                            ? "66%"
+                                                            : "100%",
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="text-xs mt-1">{passwordStrength.level}</p>
+                                </div>
+                            )}
+                            {errors.newPassword && <p className="text-xs text-red-600 mt-1">{errors.newPassword}</p>}
+
+                            {/* CONFIRM PASSWORD */}
+                            <label className="text-sm font-medium text-gray-700 mt-4 block">Confirm Password*</label>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                name="confirmPassword"
+                                placeholder="Confirm new password"
+                                onChange={handleChange}
+                                className={`mt-2 p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.confirmPassword ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                            />
+                            {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
+
+                            {/* RESET BUTTON */}
+                            <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={handleResetPassword}
+                                className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition"
+                            >
+                                SEND OTP & RESET PASSWORD
+                            </motion.button>
+                        </div>
+                    </motion.div>
 
                 </div>
             </div>
-        </div>
+            <Footer />
+        </>
     );
 }

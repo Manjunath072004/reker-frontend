@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { signup } from "../api/auth";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Footer from "../components/Footer";
+
 
 import rekerPayLogo from "../assets/Reker-logo.png";
 import BlinkitPg from "../assets/Blinkit.png";
@@ -163,7 +166,7 @@ export default function Signup() {
   const handleSignup = async () => {
     if (!validateForm()) return;
 
-    // 🔍 Check PHONE duplicate
+    //  Check PHONE duplicate
     const phoneExists = await checkPhoneExists(form.phone);
 
     if (phoneExists) {
@@ -174,7 +177,7 @@ export default function Signup() {
       return;
     }
 
-    // 🔍 Check EMAIL duplicate
+    //  Check EMAIL duplicate
     const emailExists = await checkEmailExists(form.email);
 
     if (emailExists) {
@@ -197,182 +200,205 @@ export default function Signup() {
   };
 
 
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-payuGray px-6 overflow-y-auto">
-      <div className="w-full max-w-7xl flex gap-8">
+    <>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-50 to-white px-6">
 
-        {/* LEFT PANEL */}
-        <div className="flex-1 py-12 px-14">
-          <div className="mb-10">
-            <img src={rekerPayLogo} alt="RekerPay" className="h-20 object-contain" />
-          </div>
 
-          <h3 className="text-2xl font-semibold mb-6 text-gray-800">
-            Why choose RekerPay for payments
-          </h3>
+        {/* FIXED LOGO AT TOP-LEFT */}
+        <img
+          src={rekerPayLogo}
+          className="h-16 absolute top-6 left-[70px] z-20"
+        />
 
-          <ul className="space-y-8 text-gray-700 max-w-xl">
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Get started with 100% online onboarding</p>
-            </li>
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Accept payments via SMS, Email or WhatsApp with our No-Code payment solution</p>
-            </li>
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Accept payments via 150+ payment methods</p>
-            </li>
-          </ul>
 
-          <div className="mt-24 flex items-center space-x-6 max-w-xl">
-            <div className="flex-grow border-t border-gray-300" />
-            <div className="text-sm text-gray-500 px-4">Trusted by 5 lakh+ businesses</div>
-            <div className="flex-grow border-t border-gray-300" />
-          </div>
+        {/* Animated Blobs Background */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6, scale: 1.1 }}
+          transition={{ duration: 2 }}
+          className="absolute top-[-120px] left-[-120px] w-[400px] h-[400px] bg-green-300 rounded-full blur-3xl opacity-30"
+        />
 
-          <div className="overflow-hidden w-full mt-6">
-            <div className="logo-slider flex items-center gap-10 animate-scroll">
-              <img src={BlinkitPg} className="logo-item h-12" />
-              <img src={ZomatoPg} className="logo-item h-12" />
-              <img src={ShopifyPg} className="logo-item h-12" />
-              <img src={NammaMetroPg} className="logo-item h-12" />
-              <img src={MyntraPg} className="logo-item h-12" />
-              <img src={SwiggyPg} className="logo-item h-12" />
-              <img src={KFCPg} className="logo-item h-12" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5, scale: 1.1 }}
+          transition={{ duration: 2 }}
+          className="absolute bottom-[-150px] right-[-150px] w-[420px] h-[420px] bg-yellow-300 rounded-full blur-3xl opacity-20"
+        />
+
+        <div className="w-full max-w-7xl flex gap-10 relative z-10">
+
+          {/* LEFT PANEL */}
+          <motion.div
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.7 }}
+            className="flex-1 flex flex-col justify-center px-14"
+          >
+
+            <h3 className="text-3xl font-bold text-gray-800 mb-6">
+              Why choose RekerPay for payments
+            </h3>
+
+            <ul className="space-y-7 text-gray-700 text-lg">
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>100% online onboarding to get started quickly</p>
+              </li>
+
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>Accept payments via WhatsApp, SMS, Email with No-Code tools</p>
+              </li>
+
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>150+ payment methods supported</p>
+              </li>
+            </ul>
+
+            <div className="mt-24 flex items-center space-x-6 max-w-xl">
+              <div className="flex-grow border-t border-gray-300" />
+              <div className="text-sm text-gray-500 px-4">Trusted by 5 lakh+ businesses</div>
+              <div className="flex-grow border-t border-gray-300" />
             </div>
-          </div>
-        </div>
 
-        {/* RIGHT PANEL */}
-        <div className="flex flex-col w-100 overflow-y-auto pb-10">
-          <div className="bg-white signup-card p-8 relative w-full shadow-sm rounded">
+            <div className="w-full overflow-hidden mt-6 h-22">
+              <div className="flex items-center gap-8 animate-scroll whitespace-nowrap">
+                {[BlinkitPg, ZomatoPg, ShopifyPg, NammaMetroPg, MyntraPg, SwiggyPg, KFCPg]
+                  .map((src, idx) => (
+                    <img
+                      key={idx}
+                      src={src}
+                      className="inline-block h-10 object-contain mx-4"
+                      alt="partner logo"
+                    />
+                  ))}
+              </div>
+            </div>
 
-            <p className="text-sm text-gray-500 mb-1 text-left">Welcome to!</p>
+          </motion.div>
 
-            <div className="flex justify-start mb-6">
-              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent">
+          {/* RIGHT PANEL */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col w-[420px]"
+          >
+            <div className="
+            backdrop-blur-xl bg-white/40 
+            border border-white/30 
+            rounded-2xl shadow-xl p-10 w-full
+          ">
+              <p className="text-sm text-gray-600">Welcome to!</p>
+
+              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-yellow-500 bg-clip-text text-transparent mt-2 mb-4">
                 RekerPay
               </h1>
-            </div>
 
-            <p className="text-sm text-gray-600 mb-4">
-              Already have an account?{" "}
-              <span
-                className="text-green-600 underline cursor-pointer"
-                onClick={() => navigate("/login")}
-              >
-                Login
-              </span>
-            </p>
+              <p className="text-sm text-gray-700 mb-4">
+                Already have an account?{" "}
+                <span className="text-green-700 underline cursor-pointer" onClick={() => navigate("/login")}>
+                  Login
+                </span>
+              </p>
 
-            <h2 className="text-lg font-semibold text-gray-800 mb-6">
-              Get started with Email and Phone Number
-            </h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                Create your RekerPay Account
+              </h2>
 
-            {/* EMAIL */}
-            <label className="text-sm font-medium text-gray-700 block">Email*</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email id"
-              className={`input-field mt-2 p-3 w-full ${errors.email ? "border border-red-500" : ""
-                }`}
-              onChange={handleChange}
-            />
-            {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
-
-            {/* PASSWORD */}
-            <label className="text-sm font-medium text-gray-700 mt-4 block">Set a Password*</label>
-            <div className="relative mt-2">
+              {/* EMAIL */}
+              <label className="text-sm font-medium text-gray-700">Email*</label>
               <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Enter your RekerPay Password"
-                className={`input-field p-3 w-full ${errors.password ? "border border-red-500" : ""
-                  }`}
-                onChange={(e) => {
-                  handleChange(e);
-                  checkPasswordStrength(e.target.value);
-                }}
-              />
-              <span
-                className="absolute right-3 top-3 cursor-pointer text-gray-600"
-                onClick={() => setShowPassword((prev) => !prev)}
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </span>
-            </div>
-
-            {/* PASSWORD STRENGTH METER */}
-            {form.password && (
-              <div className="mt-2">
-                <div className="w-full h-2 bg-gray-200 rounded">
-                  <div
-                    className={`h-2 rounded ${passwordStrength.color}`}
-                    style={{
-                      width:
-                        passwordStrength.level === "Weak Password"
-                          ? "33%"
-                          : passwordStrength.level === "Medium Strength"
-                            ? "66%"
-                            : "100%",
-                    }}
-                  ></div>
-                </div>
-                <p
-                  className={`text-xs mt-1 ${passwordStrength.level === "Weak Password"
-                    ? "text-red-600"
-                    : passwordStrength.level === "Medium Strength"
-                      ? "text-yellow-600"
-                      : "text-green-600"
-                    }`}
-                >
-                  {passwordStrength.level}
-                </p>
-              </div>
-            )}
-
-            {errors.password && (
-              <p className="text-xs text-red-600 mt-1">{errors.password}</p>
-            )}
-
-            {/* PHONE */}
-            <label className="text-sm font-medium text-gray-700 mt-4 block">Mobile*</label>
-            <div className="flex mt-2">
-              <div className="inline-flex items-center px-3 border border-r-0 bg-gray-100 rounded-l">
-                +91
-              </div>
-              <input
-                type="text"
-                name="phone"
-                placeholder="Enter your 10 digit mobile number"
-                className={`input-field p-3 w-full rounded-none rounded-r ${errors.phone ? "border border-red-500" : ""
-                  }`}
+                type="email"
+                name="email"
+                placeholder="Enter your email id"
                 onChange={handleChange}
+                className={`mt-2 p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.email ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
               />
+              {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+
+              {/* PASSWORD */}
+              <label className="text-sm font-medium text-gray-700 mt-4 block">Password*</label>
+              <div className="relative mt-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Create a strong password"
+                  className={`p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.password ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                  onChange={(e) => {
+                    handleChange(e);
+                    checkPasswordStrength(e.target.value);
+                  }}
+                />
+                <span
+                  className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </span>
+              </div>
+
+              {form.password && (
+                <div className="mt-2">
+                  <div className="w-full h-2 bg-gray-200 rounded">
+                    <div
+                      className={`h-2 rounded ${passwordStrength.color}`}
+                      style={{
+                        width:
+                          passwordStrength.level === "Weak Password"
+                            ? "33%"
+                            : passwordStrength.level === "Medium Strength"
+                              ? "66%"
+                              : "100%",
+                      }}
+                    ></div>
+                  </div>
+                  <p className="text-xs mt-1">{passwordStrength.level}</p>
+                </div>
+              )}
+              {errors.password && (
+                <p className="text-xs text-red-600 mt-1">{errors.password}</p>
+              )}
+
+              {/* PHONE */}
+              <label className="text-sm font-medium text-gray-700 mt-4 block">Mobile*</label>
+              <div className="flex mt-2">
+                <div className="inline-flex items-center px-4 bg-gray-100 border border-gray-300 rounded-l-lg">
+                  +91
+                </div>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="10-digit phone number"
+                  className={`p-3 w-full rounded-r-lg bg-white/70 backdrop-blur border ${errors.phone ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                  onChange={handleChange}
+                />
+              </div>
+              {errors.phone && <p className="text-xs text-red-600">{errors.phone}</p>}
+
+              {/* BUTTON */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition"
+                onClick={handleSignup}
+              >
+                SEND OTP & CREATE ACCOUNT
+              </motion.button>
+
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                By signing up you agree to our{" "}
+                <span className="underline">Terms</span> &{" "}
+                <span className="underline">Privacy Policy</span>.
+              </p>
             </div>
-            {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
-
-            {/* BUTTON */}
-            <button
-              onClick={handleSignup}
-              className="mt-8 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-full font-semibold"
-            >
-              SEND OTP & CREATE ACCOUNT
-            </button>
-
-            <p className="text-xs text-gray-500 mt-4">
-              By signing up, you agree to our{" "}
-              <span className="underline">Terms & Conditions</span> and{" "}
-              <span className="underline">Privacy Policy</span>.
-            </p>
-
-          </div>
+          </motion.div>
         </div>
-
       </div>
-    </div>
+      <Footer/>
+    </>
   );
 }

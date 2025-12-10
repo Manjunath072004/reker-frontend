@@ -1,6 +1,10 @@
 import { useEffect, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { verifyOtp, resetPassword, resendOtp } from "../api/auth";   //  ADDED BACK
+import { verifyOtp, resetPassword, resendOtp } from "../api/auth";
+import { motion } from "framer-motion";
+import Footer from "../components/Footer";
+
+
 import rekerPayLogo from "../assets/Reker-logo.png";
 import BlinkitPg from "../assets/Blinkit.png";
 import ShopifyPg from "../assets/shopify.jpg";
@@ -9,16 +13,15 @@ import NammaMetroPg from "../assets/Namma_Metro.png";
 import MyntraPg from "../assets/Myntra-Logo.png";
 import SwiggyPg from "../assets/Swiggy_Logo.png";
 import KFCPg from "../assets/KFC_logo.png";
+
 import { AuthContext } from "../context/AuthContext";
 
 export default function OtpVerify() {
   const { state } = useLocation();
   const navigate = useNavigate();
-
   const phone = state?.phone || "";
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(45);
-
   const { saveToken } = useContext(AuthContext);
 
   useEffect(() => {
@@ -33,7 +36,6 @@ export default function OtpVerify() {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
-
       if (value && index < 3) {
         document.getElementById(`otp-${index + 1}`).focus();
       }
@@ -45,215 +47,154 @@ export default function OtpVerify() {
       alert("Phone number missing!");
       return;
     }
-
     try {
       await resendOtp({ phone });
-
       alert("OTP resent successfully!");
-      setTimer(45); // reset timer
+      setTimer(45);
     } catch (err) {
       alert("Failed to resend OTP");
       console.log(err);
     }
   };
 
-
-  // FIXED — REAL VERIFY OTP API CALL
   const handleSubmit = async () => {
     const finalOtp = otp.join("");
-
     if (finalOtp.length !== 4) {
       alert("Enter valid OTP");
       return;
     }
-
     try {
-      //  Verify OTP first
-      const res = await verifyOtp({
-        phone: phone,
-        otp: finalOtp,
-      });
+      const res = await verifyOtp({ phone, otp: finalOtp });
 
-      //  If this OTP is for resetting password
       if (state?.mode === "reset-password") {
-        const resetRes = await resetPassword({
-          phone: phone,
-          new_password: state.newPassword,
-        });
-
+        await resetPassword({ phone, new_password: state.newPassword });
         alert("Password Reset Successful! Please login.");
         navigate("/login");
         return;
       }
 
-      //  If OTP Verify is for Login
       if (state?.mode === "login") {
         const token = res.data?.tokens?.access;
-
-        alert("OTP sent to your mobile");
         if (!token) {
           alert("Login failed: No token received from server.");
           return;
         }
-
         saveToken(token);
-
-        //  SHOW SUCCESS MESSAGE
         alert("OTP verified successfully! Login Successful.");
-
         navigate("/merchant-dashboard");
-
         return;
       }
 
-
-      //  OTP for Signup
+      // OTP for Signup
       alert("Account Verified! Please login.");
       navigate("/login");
-
     } catch (err) {
       alert("OTP verification failed");
+      console.log(err);
     }
   };
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-payuGray px-6 overflow-y-auto">
-      <div className="w-full max-w-7xl flex gap-8">
+    <>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-50 to-white px-6">
 
-        {/* LEFT PANEL */}
-        <div className="flex-1 py-12 px-14">
-          <div className="mb-10">
-            <img
-              src={rekerPayLogo}
-              alt="RekerPay"
-              className="h-20 object-contain"
-            />
-          </div>
+        {/* FIXED LOGO */}
+        <img src={rekerPayLogo} className="h-16 absolute top-6 left-[70px] z-20" />
 
-          <h3 className="text-2xl font-semibold mb-6 text-gray-800">
-            Why choose RekerPay for payments
-          </h3>
+        {/* Animated Blobs */}
+        <motion.div
+          className="absolute top-[-120px] left-[-120px] w-[400px] h-[400px] bg-green-300 rounded-full blur-3xl opacity-30"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6, scale: 1.1 }}
+          transition={{ duration: 2 }}
+        />
+        <motion.div
+          className="absolute bottom-[-150px] right-[-150px] w-[420px] h-[420px] bg-yellow-300 rounded-full blur-3xl opacity-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5, scale: 1.1 }}
+          transition={{ duration: 2 }}
+        />
 
-          <ul className="space-y-8 text-gray-700 max-w-xl">
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Get started with 100% online onboarding</p>
-            </li>
+        <div className="w-full max-w-7xl flex gap-10 relative z-10">
 
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Accept payments via SMS, Email or Whatsapp with our No Code payment solution</p>
-            </li>
+          {/* LEFT PANEL */}
+          <motion.div
+            className="flex-1 flex flex-col justify-center px-14"
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.7 }}
+          >
+            <h3 className="text-3xl font-bold text-gray-800 mb-6">
+              Why Secure & Fast Verification
+            </h3>
 
-            <li className="flex items-start gap-4">
-              <div className="w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center">✓</div>
-              <p>Accept payments via 150+ payment methods</p>
-            </li>
-          </ul>
+            <ul className="space-y-7 text-gray-700 text-lg">
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>OTP verification ensures your account is protected</p>
+              </li>
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>Quick login without remembering passwords</p>
+              </li>
+              <li className="flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center">✓</div>
+                <p>Seamless access from any device in seconds</p>
+              </li>
+            </ul>
 
-          <div className="mt-24 flex items-center space-x-6 max-w-xl">
-            <div className="flex-grow border-t border-gray-300" />
-            <div className="text-sm text-gray-500 px-4">
-              Trusted by 5 lakh+ businesses
-            </div>
-            <div className="flex-grow border-t border-gray-300" />
-          </div>
-
-          <div className="overflow-hidden w-full mt-6">
-            <div className="logo-slider">
-              <img src={BlinkitPg} className="logo-item" />
-              <img src={ZomatoPg} className="logo-item" />
-              <img src={ShopifyPg} className="logo-item" />
-              <img src={NammaMetroPg} className="logo-item" />
-              <img src={MyntraPg} className="logo-item" />
-              <img src={SwiggyPg} className="logo-item" />
-              <img src={KFCPg} className="logo-item" />
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL */}
-        <div className="flex flex-col w-96 overflow-y-auto pb-10">
-          <div className="bg-white signup-card p-8 relative w-full shadow-sm rounded">
-
-            <div className="absolute left-0 top-0 h-full w-14 dotted-grid pointer-events-none" />
-
-            <p className="text-sm text-gray-500 mb-1 text-left">
-              Welcome to!
-            </p>
-
-            <div className="flex justify-start mb-6">
-              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent tracking-wide">
-                RekerPay
-              </h1>
+            <div className="mt-24 flex items-center space-x-6 max-w-xl">
+              <div className="flex-grow border-t border-gray-300" />
+              <div className="text-sm text-gray-500 px-4">
+                Verified by thousands of users every day
+              </div>
+              <div className="flex-grow border-t border-gray-300" />
             </div>
 
-            <h2 className="text-lg font-semibold text-gray-800 mb-6 text-left">
-              Verify Phone Number to Get started
-            </h2>
-
-            <div className="bg-[#ecf5ff] border border-[#d4e5ff] text-[#3a77ff] text-sm p-3 rounded">
-              We have sent an OTP to your mobile number
+            <div className="w-full overflow-hidden mt-6 h-22">
+              <div className="flex items-center gap-8 animate-scroll whitespace-nowrap">
+                {[BlinkitPg, NammaMetroPg, ZomatoPg, ShopifyPg, MyntraPg, SwiggyPg, KFCPg].map((src, idx) => (
+                  <img key={idx} src={src} className="inline-block h-10 object-contain mx-4" alt="partner logo" />
+                ))}
+              </div>
             </div>
+          </motion.div>
 
-            <p className="text-sm text-gray-600 mt-6">Mobile Number</p>
-            <input
-              disabled
-              value={"+91 " + phone}
-              className="mt-1 border rounded-md px-3 py-2 text-gray-700 w-full bg-gray-100"
-            />
+          {/* RIGHT PANEL */}
+          <motion.div className="flex flex-col w-[420px]" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8 }}>
+            <div className="backdrop-blur-xl bg-white/40 border border-white/30 rounded-2xl shadow-xl p-10 w-full">
+              <p className="text-sm text-gray-600">Welcome to!</p>
+              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-yellow-500 bg-clip-text text-transparent mt-2 mb-4">RekerPay</h1>
+              <p className="text-sm text-gray-700 mb-4">Enter the OTP sent to your mobile number to proceed</p>
 
-            <p className="mt-6 text-sm text-gray-600">Enter OTP</p>
+              <label className="text-sm font-medium text-gray-700">Mobile Number</label>
+              <input
+                disabled
+                value={"+91 " + phone} className="mt-2 p-3 w-full rounded-xl bg-white/70 backdrop-blur border border-gray-300 focus:ring-2 focus:ring-green-400 outline-none" />
 
-            <div className="flex gap-4 mt-3">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(e.target.value, index)}
-                  className="w-[54px] h-[54px] border rounded-md text-center text-xl font-medium outline-none focus:ring-2 focus:ring-green-500"
-                />
-              ))}
+              <label className="text-sm font-medium text-gray-700 mt-4 block">Enter OTP</label>
+              <div className="flex gap-4 mt-2">
+                {otp.map((digit, index) => (
+                  <input key={index} id={`otp-${index}`} maxLength={1} value={digit} onChange={(e) => handleChange(e.target.value, index)}
+                    className="w-[54px] h-[54px] border rounded-xl text-center text-xl font-medium outline-none focus:ring-2 focus:ring-green-500" />
+                ))}
+              </div>
+
+              <div className="flex justify-between mt-5 items-center">
+                <button className="text-green-700 font-semibold" onClick={() => navigate(-1)}>Back</button>
+                {timer > 0 ? <p className="text-gray-500 text-sm">Resend OTP in 00:{timer.toString().padStart(2, "0")}</p> :
+                  <button className="text-green-700 font-semibold" onClick={handleResend}>Resend OTP</button>}
+              </div>
+
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit}
+                className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition">
+                VERIFY OTP
+              </motion.button>
             </div>
-
-            <div className="flex justify-between mt-5 items-center">
-              <button
-                className="text-green-700 font-semibold"
-                onClick={() => navigate(-1)}
-              >
-                Back
-              </button>
-
-              {timer > 0 ? (
-                <p className="text-gray-500 text-sm">
-                  Resend OTP in 00:{timer.toString().padStart(2, "0")}
-                </p>
-              ) : (
-                <button
-                  className="text-green-700 font-semibold"
-                  onClick={handleResend}
-                >
-                  Resend OTP
-                </button>
-
-              )}
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              className="w-full bg-[#0e9f4a] text-white py-4 rounded-full text-sm font-semibold mt-8"
-            >
-              VERIFY OTP
-            </button>
-
-          </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 }
-

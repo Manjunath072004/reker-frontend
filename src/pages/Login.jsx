@@ -1,8 +1,12 @@
 import { useState, useContext } from "react";
 import { login, checkPhoneRegistered } from "../api/auth";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Footer from "../components/Footer";
+
+
 import rekerPayLogo from "../assets/Reker-logo.png";
-import loginBg from "../assets/reker_login_image.jpeg";
+
 import { AuthContext } from "../context/AuthContext";
 
 export default function Login() {
@@ -17,37 +21,28 @@ export default function Login() {
   const navigate = useNavigate();
   const { saveToken } = useContext(AuthContext);
 
-  // ---------------- HANDLE INPUT CHANGE ----------------
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setErrors((prev) => ({ ...prev, [e.target.name]: "" })); // clear specific field error
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
   };
 
-  // ---------------- LOGIN FORM VALIDATION --------------
   const validateLoginForm = () => {
     let newErrors = {};
 
-    const phone = form.phone.trim();
-    const password = form.password.trim();
-
-    // PHONE VALIDATION
-    if (!phone) {
+    if (!form.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(phone)) {
+    } else if (!/^\d{10}$/.test(form.phone)) {
       newErrors.phone = "Enter a valid 10-digit phone number";
     }
 
-    // PASSWORD VALIDATION
-    if (!password) {
+    if (!form.password.trim()) {
       newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
-  // ---------------- LOGIN USING OTP ----------------
   const handleLoginUsingOtp = async () => {
     if (!form.phone || form.phone.length !== 10) {
       setErrors((prev) => ({
@@ -75,24 +70,20 @@ export default function Login() {
     }
   };
 
-  // ---------------- NORMAL LOGIN ----------------
   const handleLogin = async () => {
-    if (!validateLoginForm()) return; // stop if errors exist
+    if (!validateLoginForm()) return;
 
     try {
       const res = await login(form);
       const token = res.data?.tokens?.access;
 
       if (!token) {
-        alert("Login failed: No token received from server.");
+        alert("Login failed: No token received.");
         return;
       }
 
       saveToken(token);
-
-      //  SHOW SUCCESS MESSAGE
       alert("Login Successful!");
-
       navigate("/merchant-dashboard");
 
     } catch (err) {
@@ -109,131 +100,122 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-green-50 to-white px-6">
 
-      {/* LEFT SIDE IMAGE */}
-      <div className="w-1/2 relative">
-        <img src={loginBg} className="w-full h-full object-cover" />
+        {/* FIXED LOGO */}
+        <img
+          src={rekerPayLogo}
+          className="h-16 absolute top-6 left-[70px] z-20"
+        />
 
-        <div className="absolute top-10 left-10">
-          <img src={rekerPayLogo} className="h-20" />
-        </div>
+        {/* TOP-LEFT BLOB */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6, scale: 1.1 }}
+          transition={{ duration: 2 }}
+          className="absolute top-[-120px] left-[-120px] w-[400px] h-[400px] bg-green-300 rounded-full blur-3xl opacity-30"
+        />
 
-        <div className="absolute bottom-20 left-14 text-white max-w-lg">
-          <p className="text-sm bg-yellow-400 px-3 py-1 text-black w-max">
-            EVENT UPDATE
-          </p>
-          <h1 className="text-4xl font-bold mt-6 leading-snug">
-            Powering Businesses. <br /> Touching Lives.
-          </h1>
-          <p className="mt-6 text-lg opacity-90">
-            Supercharge your business growth with RekerPay
-          </p>
-          <button className="mt-6 text-white underline text-sm">
-            MORE DETAILS &gt;
-          </button>
-        </div>
-      </div>
+        {/* BOTTOM-RIGHT BLOB */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5, scale: 1.1 }}
+          transition={{ duration: 2 }}
+          className="absolute bottom-[-150px] right-[-150px] w-[420px] h-[420px] bg-yellow-300 rounded-full blur-3xl opacity-20"
+        />
 
-      {/* RIGHT LOGIN CARD */}
-      <div className="w-1/2 flex items-center justify-center">
-        <div className="bg-white shadow-lg rounded-lg p-10 w-[430px] relative">
+        {/* ---------------- CENTER LOGIN CARD ---------------- */}
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          className="flex flex-col w-[420px] relative z-10"
+        >
+          <div className="
+          backdrop-blur-xl bg-white/40 
+          border border-white/30 
+          rounded-2xl shadow-xl p-10 w-full
+        ">
 
-          <div className="absolute left-0 top-0 h-full w-14 dotted-grid opacity-40 pointer-events-none"></div>
+            <p className="text-sm text-gray-600">Welcome back!</p>
 
-          {/* WELCOME TEXT */}
-          <p className="text-sm text-gray-500 mb-1 text-left">Welcome to!</p>
-
-          <div className="flex justify-start mb-6">
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent tracking-wide">
+            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-yellow-500 bg-clip-text text-transparent mt-2 mb-4">
               RekerPay
             </h1>
-          </div>
 
-          <h2 className="text-lg font-semibold text-gray-800 mb-6 text-left">
-            Get started with Your Phone Number
-          </h2>
-
-          {/* PHONE FIELD */}
-          <label className="text-sm font-medium text-gray-700">Phone Number</label>
-          <div className="flex mt-2">
-            <div className="inline-flex items-center px-3 border border-r-0 bg-gray-100 rounded-l">+91</div>
-            <input
-              type="text"
-              name="phone"
-              placeholder="Enter your 10 digit mobile number"
-              className={`input-field p-3 w-full rounded-none rounded-r ${errors.phone ? "border border-red-500" : ""
-                }`}
-              onChange={handleChange}
-            />
-          </div>
-          {errors.phone && (
-            <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
-          )}
-
-          {/* PASSWORD FIELD */}
-          <label className="text-sm font-medium text-gray-700 mt-4 block">
-            Password
-          </label>
-
-          <div className="relative mt-2">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Enter your RekerPay Password"
-              className={`input-field p-3 w-full ${errors.password ? "border border-red-500" : ""
-                }`}
-              onChange={handleChange}
-            />
-            <span
-              className="absolute right-3 top-3 cursor-pointer text-gray-600"
-              onClick={() => setShowPassword((prev) => !prev)}
-            >
-              {showPassword ? "🙈" : "👁️"}
-            </span>
-          </div>
-          {errors.password && (
-            <p className="text-xs text-red-600 mt-1">
-              {errors.password}
+            <p className="text-sm text-gray-700 mb-4">
+              New to RekerPay?{" "}
+              <span className="text-green-700 underline cursor-pointer" onClick={() => navigate("/signup")}>
+                Sign Up
+              </span>
             </p>
-          )}
 
-          {/* LINKS */}
-          <div className="flex justify-between mt-3 text-sm">
-            <span
-              className="text-green-600 cursor-pointer underline"
-              onClick={handleLoginUsingOtp}
-            >
-              Login using OTP
-            </span>
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">
+              Login to your RekerPay Account
+            </h2>
 
-            <span
-              className="text-green-600 cursor-pointer underline"
-              onClick={() => navigate("/forgot-password")}
+            {/* PHONE */}
+            <label className="text-sm font-medium text-gray-700">Phone*</label>
+            <div className="flex mt-2">
+              <div className="inline-flex items-center px-4 bg-gray-100 border border-gray-300 rounded-l-lg">+91</div>
+              <input
+                type="text"
+                name="phone"
+                placeholder="Enter your mobile number"
+                className={`p-3 w-full rounded-r-lg bg-white/70 backdrop-blur border ${errors.phone ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                onChange={handleChange}
+              />
+            </div>
+            {errors.phone && <p className="text-xs text-red-600">{errors.phone}</p>}
+
+            {/* PASSWORD */}
+            <label className="text-sm font-medium text-gray-700 mt-4 block">Password*</label>
+
+            <div className="relative mt-2">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your RekerPay password"
+                className={`p-3 w-full rounded-xl bg-white/70 backdrop-blur border ${errors.password ? "border-red-500" : "border-gray-300"} focus:ring-2 focus:ring-green-400 outline-none`}
+                onChange={handleChange}
+              />
+              <span
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </span>
+            </div>
+            {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
+
+            {/* LINKS */}
+            <div className="flex justify-between mt-3 text-sm">
+              <span className="text-green-600 underline cursor-pointer" onClick={handleLoginUsingOtp}>
+                Login using OTP
+              </span>
+
+              <span className="text-green-600 underline cursor-pointer" onClick={() => navigate("/forgot-password")}>
+                Forgot Password
+              </span>
+            </div>
+
+            {/* LOGIN BUTTON */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleLogin}
+              className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition"
             >
-              Forgot Password
-            </span>
+              LOGIN
+            </motion.button>
+
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Using your phone number means faster & secure authentication.
+            </p>
           </div>
-
-          {/* LOGIN BUTTON */}
-          <button
-            onClick={handleLogin}
-            className="mt-8 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-full font-semibold"
-          >
-            LOGIN
-          </button>
-
-          <p className="text-sm text-center mt-4 text-gray-600">
-            Don’t have an account with RekerPay?{" "}
-            <span
-              className="text-green-600 underline cursor-pointer"
-              onClick={() => navigate("/signup")}
-            >
-              Sign Up
-            </span>
-          </p>
-        </div>
+        </motion.div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 }

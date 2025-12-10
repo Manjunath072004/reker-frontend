@@ -68,14 +68,29 @@ export default function MerchantDashboard() {
   // }, [token]);
 
   useEffect(() => {
-    if (!token) return;
+  if (!token) return;
 
-    API.get("/auth/me/", {
-      headers: { Authorization: `Bearer ${token}` },
+  API.get("/merchants/me/", {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then((res) => {
+      setMerchant(res.data);
     })
-      .then((res) => setUser(res.data))
-      .catch((err) => console.error("Failed to fetch user:", err));
-  }, [token]);
+    .catch((err) => {
+      console.error("Merchant fetch failed:", err);
+    });
+}, [token]);
+
+
+  // useEffect(() => {
+  //   if (!token) return;
+
+  //   API.get("/auth/me/", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   })
+  //     .then((res) => setUser(res.data))
+  //     .catch((err) => console.error("Failed to fetch user:", err));
+  // }, [token]);
 
 
   /* ---------------- FILTER TX ---------------- */

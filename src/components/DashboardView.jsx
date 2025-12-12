@@ -25,7 +25,6 @@ export default function DashboardView({
           <p className="text-sm text-gray-500">
             Phone: {merchant?.phone || user?.phone || "—"}
           </p>
-
         </div>
 
         <div className="flex items-center gap-3">
@@ -48,13 +47,26 @@ export default function DashboardView({
       {/* KPI CARDS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         <KpiCard title="Today's Earnings" value={"₹" + (Math.floor(Math.random() * 8000) + 200)} />
-        <KpiCard title="Transactions" value={Math.floor(Math.random() * 120)} />
-        <KpiCard title="Success Rate" value={Math.floor(80 + Math.random() * 18) + "%"} />
+        <KpiCard title="Transactions" value={transactions.length} />
+
+        <KpiCard
+          title="Success Rate"
+          value={
+            transactions.length
+              ? Math.round(
+                  (transactions.filter(t => t.status === "SUCCESS").length /
+                    transactions.length) * 100
+                ) + "%"
+              : "0%"
+          }
+        />
+
         <KpiCard title="Pending Settlements" value={"₹" + (Math.floor(Math.random() * 20000))} />
       </section>
 
       {/* GRAPH + LIVE FEED */}
       <section className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         {/* LINE CHART */}
         <div className="lg:col-span-2 bg-white p-4 rounded shadow">
           <div className="flex items-center justify-between mb-3">
@@ -80,33 +92,38 @@ export default function DashboardView({
         {/* ACTIVITY FEED */}
         <div className="bg-white p-4 rounded shadow">
           <h4 className="font-semibold mb-3">Live Activity</h4>
+
           <ul className="space-y-3 text-sm text-gray-700">
-            <li className="flex items-start gap-3">
-              <CheckCircle size={16} className="text-green-600" />
-              <div>
-                <div className="font-medium">Payment of ₹1,499 received</div>
-                <div className="text-xs text-gray-500">15 minutes ago</div>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <Receipt size={16} className="text-red-500" />
-              <div>
-                <div className="font-medium">Failed payment T-1002</div>
-                <div className="text-xs text-gray-500">40 minutes ago</div>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <Ticket size={16} className="text-blue-500" />
-              <div>
-                <div className="font-medium">Coupon ABC redeemed</div>
-                <div className="text-xs text-gray-500">2 hours ago</div>
-              </div>
-            </li>
+            {transactions.slice(0, 3).map((t) => (
+              <li key={t.id} className="flex items-start gap-3">
+                <CheckCircle
+                  size={16}
+                  className={t.status === "SUCCESS" ? "text-green-600" : "text-red-500"}
+                />
+
+                <div>
+                  <div className="font-medium">
+                    {t.status === "SUCCESS"
+                      ? `Payment of ₹${t.final_amount} received`
+                      : `Failed payment ${t.id}`}
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    {new Date(t.created_at).toLocaleString()}
+                  </div>
+                </div>
+              </li>
+            ))}
+
+            {transactions.length === 0 && (
+              <li className="text-gray-500 text-center">No recent activity</li>
+            )}
           </ul>
         </div>
+
       </section>
 
-      {/* RECENT TX */}
+      {/* RECENT TRANSACTIONS */}
       <section className="mt-6 bg-white p-4 rounded shadow">
         <h4 className="font-semibold mb-3">Recent Transactions</h4>
 
@@ -130,22 +147,32 @@ export default function DashboardView({
                   </td>
                 </tr>
               ) : (
-                transactions.map((t) => (
-                  <tr key={t.id}>
+                transactions.slice(0, 5).map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-50">
                     <td className="py-3">{t.id}</td>
-                    <td>₹{t.amount}</td>
-                    <td>{t.method}</td>
+
+                    <td>₹{t.final_amount}</td>
+
+                    {/* UPDATED: payment method */}
+                    <td>{t.gateway_transaction_id || "UPI"}</td>
+
                     <td>
                       <span
-                        className={`px-2 py-1 rounded text-xs ${t.status === "SUCCESS"
+                        className={`px-2 py-1 rounded text-xs ${
+                          t.status === "SUCCESS"
                             ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                          }`}
+                            : t.status === "FAILED"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
                       >
                         {t.status}
                       </span>
                     </td>
-                    <td className="text-gray-500">{t.time}</td>
+
+                    <td className="text-gray-500">
+                      {new Date(t.created_at).toLocaleString()}
+                    </td>
                   </tr>
                 ))
               )}

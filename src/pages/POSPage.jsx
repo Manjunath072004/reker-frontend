@@ -4,7 +4,7 @@ import { verifyCoupon } from "../api/coupons";
 import { createPayment, verifyPayment } from "../api/payments";   // NEW API
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function POSPage() {
+export default function POSPage(refreshTransactions ) {
   const { token } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
@@ -104,6 +104,7 @@ export default function POSPage() {
     try {
       const res = await verifyPayment(id, "SUCCESS", token);
       setPaymentStatus("success");
+      if (refreshTransactions) refreshTransactions();
     } catch (err) {
       console.log("Verify error:", err);
     }

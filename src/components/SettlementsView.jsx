@@ -6,14 +6,19 @@ export default function SettlementsView() {
   const { token } = useContext(AuthContext);
   const [settlements, setSettlements] = useState([]);
 
-  useEffect(() => {
-    if (!token) return;
-
+  const fetchSettlements = () => {
     API.get("/settlements/list/", {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => setSettlements(res.data))
-      .catch(err => console.error("Settlement fetch failed:", err));
+      .catch(err => console.error("Settlement fetch error:", err));
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    fetchSettlements();
+    const interval = setInterval(fetchSettlements, 5000);
+    return () => clearInterval(interval);
   }, [token]);
 
   return (
@@ -24,7 +29,7 @@ export default function SettlementsView() {
         <table className="w-full text-left text-sm">
           <thead className="text-gray-500">
             <tr>
-              <th>Settle ID</th>
+              <th>Settlement ID</th>
               <th>Amount</th>
               <th>Date</th>
               <th>Status</th>
@@ -39,13 +44,13 @@ export default function SettlementsView() {
                 </td>
               </tr>
             ) : (
-              settlements.map((s) => (
+              settlements.map(s => (
                 <tr key={s.id}>
                   <td className="py-3">{s.id}</td>
                   <td>₹{s.amount}</td>
-                  <td>{new Date(s.settlement_date).toLocaleDateString()}</td>
+                  <td>{new Date(s.settlement_date).toLocaleString()}</td>
                   <td
-                    className={`text-sm ${
+                    className={`font-medium ${
                       s.status === "PAID"
                         ? "text-green-600"
                         : s.status === "PENDING"

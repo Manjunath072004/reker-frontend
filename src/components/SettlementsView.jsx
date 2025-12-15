@@ -1,8 +1,20 @@
+import { useEffect, useState, useContext } from "react";
+import API from "../api/axios";
+import { AuthContext } from "../context/AuthContext";
+
 export default function SettlementsView() {
-  const items = [
-    { id: "S-001", amount: 15000, date: "2025-11-25", status: "Pending" },
-    { id: "S-002", amount: 5400, date: "2025-11-24", status: "Paid" },
-  ];
+  const { token } = useContext(AuthContext);
+  const [settlements, setSettlements] = useState([]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    API.get("/settlements/list/", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => setSettlements(res.data))
+      .catch(err => console.error("Settlement fetch failed:", err));
+  }, [token]);
 
   return (
     <div>
@@ -20,19 +32,32 @@ export default function SettlementsView() {
           </thead>
 
           <tbody className="divide-y">
-            {items.map((i) => (
-              <tr key={i.id}>
-                <td className="py-3">{i.id}</td>
-                <td>₹{i.amount}</td>
-                <td>{i.date}</td>
-                <td
-                  className={`text-sm ${i.status === "Paid" ? "text-green-600" : "text-yellow-600"
-                    }`}
-                >
-                  {i.status}
+            {settlements.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="p-4 text-center text-gray-500">
+                  No settlements found
                 </td>
               </tr>
-            ))}
+            ) : (
+              settlements.map((s) => (
+                <tr key={s.id}>
+                  <td className="py-3">{s.id}</td>
+                  <td>₹{s.amount}</td>
+                  <td>{new Date(s.settlement_date).toLocaleDateString()}</td>
+                  <td
+                    className={`text-sm ${
+                      s.status === "PAID"
+                        ? "text-green-600"
+                        : s.status === "PENDING"
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {s.status}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

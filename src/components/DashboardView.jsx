@@ -33,6 +33,7 @@ export default function DashboardView({
   user,
   transactions = [],
   dateRange,
+  kpis,
   setDateRange,
 }) {
   const revenueSeries = buildRevenueSeries(transactions);
@@ -43,9 +44,9 @@ export default function DashboardView({
 
   const successRate = transactions.length
     ? Math.round(
-        (transactions.filter(t => t.status === "SUCCESS").length /
-          transactions.length) * 100
-      )
+      (transactions.filter(t => t.status === "SUCCESS").length /
+        transactions.length) * 100
+    )
     : 0;
 
   return (
@@ -83,7 +84,11 @@ export default function DashboardView({
         <KpiCard title="Total Earnings" value={`₹${totalRevenue.toFixed(2)}`} />
         <KpiCard title="Transactions" value={transactions.length} />
         <KpiCard title="Success Rate" value={`${successRate}%`} />
-        <KpiCard title="Pending Settlements" value="—" />
+        <KpiCard
+          title="Pending Settlements"
+          value={`₹${Number(kpis.pending_settlements).toFixed(2)}`}
+        />
+
       </section>
 
       {/* GRAPH + LIVE ACTIVITY */}
@@ -182,11 +187,10 @@ export default function DashboardView({
                   <td>{t.gateway_transaction_id || "UPI"}</td>
                   <td>
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        t.status === "SUCCESS"
-                          ? "bg-green-50 text-green-700"
-                          : "bg-red-50 text-red-700"
-                      }`}
+                      className={`px-2 py-1 rounded text-xs ${t.status === "SUCCESS"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-red-50 text-red-700"
+                        }`}
                     >
                       {t.status}
                     </span>

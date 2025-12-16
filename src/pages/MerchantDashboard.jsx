@@ -29,6 +29,28 @@ export default function MerchantDashboard() {
   const [dateRange, setDateRange] = useState("7d");
   const [transactions, setTransactions] = useState([]);
 
+  const [kpis, setKpis] = useState({
+    total_revenue: 0,
+    paid_settlements: 0,
+    pending_settlements: 0,
+  });
+
+
+  const fetchKpis = () => {
+    if (!token) return;
+
+    API.get("/analytics/kpis/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => setKpis(res.data))
+      .catch((err) => console.error("KPI fetch failed:", err));
+  };
+
+  useEffect(() => {
+    fetchKpis();
+  }, [token]);
+
+
   /* ---------------- FETCH MERCHANT ---------------- */
   useEffect(() => {
     if (!token) return;
@@ -108,10 +130,9 @@ export default function MerchantDashboard() {
   ];
 
   const menuClass = (k) =>
-    `flex items-center gap-3 cursor-pointer p-2 rounded-lg transition ${
-      active === k
-        ? "bg-green-50 border-l-4 border-green-600 text-green-700"
-        : "text-gray-700 hover:bg-green-50"
+    `flex items-center gap-3 cursor-pointer p-2 rounded-lg transition ${active === k
+      ? "bg-green-50 border-l-4 border-green-600 text-green-700"
+      : "text-gray-700 hover:bg-green-50"
     }`;
 
   /* ---------------- MAIN UI ---------------- */
@@ -168,10 +189,15 @@ export default function MerchantDashboard() {
               revenueSeries={revenueSeries}
               dateRange={dateRange}
               setDateRange={setDateRange}
+              kpis={kpis}
             />
           )}
 
-          {active === "pos" && <POSPage refreshTransactions={fetchTransactions} />}
+          {active === "pos" && <POSPage refreshTransactions={() => {
+            fetchTransactions();
+            fetchKpis();
+          }} />
+          }
           {active === "coupons" && <Coupons />}
           {active === "transactions" && <TransactionsView transactions={filteredTransactions} />}
           {active === "settlements" && <SettlementsView />}

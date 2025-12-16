@@ -1,12 +1,12 @@
-import { useEffect, useState, useContext, useMemo } from "react"; 
+import { useEffect, useState, useContext, useMemo } from "react";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import rekerPayLogo from "../assets/Reker-logo.png";
 
 /* Lucide Icons */
 import {
-  Menu, User, Home, CreditCard, Ticket, BarChart2, LogOut,
-  ChevronLeft, Settings, Bell, Search, TrendingUp, List
+  Menu, Home, CreditCard, Ticket, BarChart2,
+  ChevronLeft, Settings, Search, TrendingUp, List
 } from "lucide-react";
 
 /* Pages & Components */
@@ -21,10 +21,8 @@ import SettingsView from "../components/SettingsView";
 export default function MerchantDashboard() {
   const { token } = useContext(AuthContext);
 
-  const [user, setUser] = useState(null);
   const [merchant, setMerchant] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [active, setActive] = useState("dashboard");
 
   const [search, setSearch] = useState("");
@@ -35,42 +33,68 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (!token) return;
 
-    API.get("/merchants/me/", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setMerchant(res.data))
-      .catch((err) => console.error("Merchant fetch failed:", err));
+    API.get("/merchants/me/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => setMerchant(res.data))
+      .catch(err => console.error(err));
   }, [token]);
 
   /* ---------------- FETCH TRANSACTIONS ---------------- */
   const fetchTransactions = () => {
     if (!token) return;
 
-    API.get("/payments/list/", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
+    API.get("/payments/list/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => {
         const sorted = res.data.sort(
           (a, b) => new Date(b.created_at) - new Date(a.created_at)
         );
         setTransactions(sorted);
       })
-      .catch((err) => console.error("Transaction fetch failed:", err));
+      .catch(err => console.error(err));
   };
 
-  // Initial fetch + auto refresh every 5 seconds
   useEffect(() => {
     fetchTransactions();
-    const interval = setInterval(fetchTransactions, 5000);
-    return () => clearInterval(interval);
+    const i = setInterval(fetchTransactions, 5000);
+    return () => clearInterval(i);
   }, [token]);
 
   /* ---------------- FILTER TRANSACTIONS ---------------- */
   const filteredTransactions = useMemo(() => {
     if (!search) return transactions;
     const q = search.toLowerCase();
-    return transactions.filter((t) =>
+    return transactions.filter(t =>
       t.id.toLowerCase().includes(q) ||
       String(t.final_amount).includes(q) ||
       t.status.toLowerCase().includes(q)
     );
   }, [search, transactions]);
+
+  /* ---------------- ANALYTICS DATA (IMPORTANT FIX) ---------------- */
+  const revenueSeries = useMemo(() => {
+    const map = {};
+
+    transactions.forEach(t => {
+      if (t.status !== "SUCCESS") return;
+
+      const day = new Date(t.created_at).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+      });
+
+      if (!map[day]) {
+        map[day] = { day, revenue: 0, tx: 0 };
+      }
+
+      map[day].revenue += Number(t.final_amount);
+      map[day].tx += 1;
+    });
+
+    return Object.values(map).slice(-7);
+  }, [transactions]);
 
   /* ---------------- SIDEBAR NAV ---------------- */
   const navItems = [
@@ -98,36 +122,36 @@ export default function MerchantDashboard() {
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-3">
             <img src={rekerPayLogo} className="h-12" alt="RekerPay" />
-            {sidebarOpen && <h1 className="text-lg font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent">RekerPay</h1>}
+            {sidebarOpen && (
+              <h1 className="text-lg font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent">
+                RekerPay
+              </h1>
+            )}
           </div>
-          <button className="p-1 rounded hover:bg-gray-100" onClick={() => setSidebarOpen(s => !s)}>
-            <ChevronLeft size={20} className={`${!sidebarOpen ? "rotate-180" : ""} transition-transform`} />
+          <button onClick={() => setSidebarOpen(s => !s)}>
+            <ChevronLeft size={20} className={`${!sidebarOpen ? "rotate-180" : ""}`} />
           </button>
         </div>
 
         <nav className="mt-8 space-y-1">
           {navItems.map(n => (
             <div key={n.key} className={menuClass(n.key)} onClick={() => setActive(n.key)}>
-              {n.icon} {sidebarOpen && <span className="font-medium">{n.label}</span>}
+              {n.icon} {sidebarOpen && <span>{n.label}</span>}
             </div>
           ))}
         </nav>
       </aside>
 
       {/* MAIN CONTENT */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-20"}`}>
+      <div className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"}`}>
         {/* TOPBAR */}
         <header className="flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <button className="md:hidden" onClick={() => setSidebarOpen(s => !s)}>
-              <Menu size={20} />
-            </button>
-            <h2 className="text-xl font-semibold">{active.charAt(0).toUpperCase() + active.slice(1)}</h2>
-          </div>
+          <h2 className="text-xl font-semibold capitalize">{active}</h2>
+
           <div className="relative">
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Search tx / id / amount"
               className="pl-9 pr-3 py-2 rounded-lg border w-72 text-sm"
             />
@@ -137,12 +161,21 @@ export default function MerchantDashboard() {
 
         {/* PAGE CONTENT */}
         <main className="p-6">
-          {active === "dashboard" && <DashboardView merchant={merchant} user={user} transactions={filteredTransactions} dateRange={dateRange} setDateRange={setDateRange} />}
+          {active === "dashboard" && (
+            <DashboardView
+              merchant={merchant}
+              transactions={filteredTransactions}
+              revenueSeries={revenueSeries}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+            />
+          )}
+
           {active === "pos" && <POSPage refreshTransactions={fetchTransactions} />}
           {active === "coupons" && <Coupons />}
           {active === "transactions" && <TransactionsView transactions={filteredTransactions} />}
           {active === "settlements" && <SettlementsView />}
-          {active === "analytics" && <AnalyticsView data={transactions} />}
+          {active === "analytics" && <AnalyticsView data={revenueSeries} />}
           {active === "settings" && <SettingsView merchant={merchant} />}
         </main>
       </div>

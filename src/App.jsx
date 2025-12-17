@@ -21,6 +21,7 @@ import LandingPage from "./pages/LandingPage";
 import Coupons from "./pages/Coupons";
 import POSPage from "./pages/POSPage";
 
+import Notifications from "./pages/Notifications";
 
 
 export default function App() {
@@ -48,6 +49,8 @@ export default function App() {
           <Route path="/coupons/list" element={<CouponList />} />
           <Route path="/coupons" element={<Coupons />} />
           <Route path="/pos" element={<POSPage />} />
+
+          <Route path="/notifications" element={<Notifications />} />
 
         </Routes>
       </BrowserRouter>

@@ -3,6 +3,8 @@ import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import rekerPayLogo from "../assets/Reker-logo.png";
 import { useNavigate } from "react-router-dom";
+import { fetchUnreadCount } from "../api/notifications";
+import { Link } from "react-router-dom";
 
 /* Lucide Icons */
 import {
@@ -22,6 +24,15 @@ import SettingsView from "../components/SettingsView";
 export default function MerchantDashboard() {
   const { token, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount().then((res) =>
+      setCount(res.data.unread_count)
+    );
+  }, []);
+
 
 
   const [merchant, setMerchant] = useState(null);
@@ -189,18 +200,35 @@ export default function MerchantDashboard() {
       <div className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"}`}>
         {/* TOPBAR */}
         <header className="flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-30">
+          {/* LEFT: PAGE TITLE */}
           <h2 className="text-xl font-semibold capitalize">{active}</h2>
 
-          <div className="relative">
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search tx / id / amount"
-              className="pl-9 pr-3 py-2 rounded-lg border w-72 text-sm"
-            />
-            <Search className="absolute left-2 top-2 text-gray-400" size={16} />
+          {/* RIGHT: NOTIFICATIONS + SEARCH */}
+          <div className="flex items-center gap-6">
+            {/*  Notifications */}
+            <Link to="/notifications" className="relative">
+              <span className="text-1xl cursor-pointer">🔔</span>
+
+              {count > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs px-2 rounded-full">
+                  {count}
+                </span>
+              )}
+            </Link>
+
+            {/*  Search */}
+            <div className="relative">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tx / id / amount"
+                className="pl-9 pr-3 py-2 rounded-lg border w-72 text-sm"
+              />
+              <Search className="absolute left-2 top-2 text-gray-400" size={16} />
+            </div>
           </div>
         </header>
+
 
         {/* PAGE CONTENT */}
         <main className="p-6">

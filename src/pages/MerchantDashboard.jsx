@@ -2,11 +2,12 @@ import { useEffect, useState, useContext, useMemo } from "react";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import rekerPayLogo from "../assets/Reker-logo.png";
+import { useNavigate } from "react-router-dom";
 
 /* Lucide Icons */
 import {
   Menu, Home, CreditCard, Ticket, BarChart2,
-  ChevronLeft, Settings, Search, TrendingUp, List
+  ChevronLeft, Settings, Search, TrendingUp, List, LogOut
 } from "lucide-react";
 
 /* Pages & Components */
@@ -19,7 +20,9 @@ import AnalyticsView from "../components/AnalyticsView";
 import SettingsView from "../components/SettingsView";
 
 export default function MerchantDashboard() {
-  const { token } = useContext(AuthContext);
+  const { token, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
 
   const [merchant, setMerchant] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,6 +31,15 @@ export default function MerchantDashboard() {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("7d");
   const [transactions, setTransactions] = useState([]);
+
+  const handleLogout = () => {
+    const ok = window.confirm("Are you sure you want to logout?");
+    if (!ok) return;
+
+    logout();               // clears token/context
+    navigate("/login");     // redirect to login
+  };
+
 
   const [kpis, setKpis] = useState({
     total_revenue: 0,
@@ -161,6 +173,16 @@ export default function MerchantDashboard() {
             </div>
           ))}
         </nav>
+        <div className="absolute bottom-6 left-0 w-full px-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
+          >
+            <LogOut size={18} />
+            {sidebarOpen && <span className="font-medium">Logout</span>}
+          </button>
+        </div>
+
       </aside>
 
       {/* MAIN CONTENT */}

@@ -44,21 +44,21 @@ export default function DashboardView({
 
   const successRate = transactions.length
     ? Math.round(
-      (transactions.filter(t => t.status === "SUCCESS").length /
-        transactions.length) * 100
-    )
+        (transactions.filter(t => t.status === "SUCCESS").length /
+          transactions.length) * 100
+      )
     : 0;
 
   return (
-    <>
+    <div className="space-y-8">
       {/* HEADER */}
       <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h3 className="text-2xl font-semibold">
-            {merchant?.business_name || user?.email || "User"}
+          <h3 className="text-3xl font-bold tracking-tight">
+            {merchant?.business_name || user?.email || "Dashboard"}
           </h3>
-          <p className="text-sm text-gray-500">
-            Phone: {merchant?.phone || user?.phone || "—"}
+          <p className="text-sm text-gray-500 mt-1">
+            📞 {merchant?.phone || user?.phone || "—"}
           </p>
         </div>
 
@@ -66,21 +66,21 @@ export default function DashboardView({
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="border rounded px-3 py-2 text-sm"
+            className="border rounded-lg px-4 py-2 text-sm bg-white shadow-sm"
           >
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
           </select>
 
-          <button className="bg-green-600 text-white px-4 py-2 rounded">
+          <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow">
             Export CSV
           </button>
         </div>
       </section>
 
       {/* KPI CARDS */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard title="Total Earnings" value={`₹${totalRevenue.toFixed(2)}`} />
         <KpiCard title="Transactions" value={transactions.length} />
         <KpiCard title="Success Rate" value={`${successRate}%`} />
@@ -88,19 +88,20 @@ export default function DashboardView({
           title="Pending Settlements"
           value={`₹${Number(kpis.pending_settlements).toFixed(2)}`}
         />
-
       </section>
 
-      {/* GRAPH + LIVE ACTIVITY */}
-      <section className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* REVENUE GRAPH */}
-        <div className="lg:col-span-2 bg-white p-4 rounded shadow">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold">Revenue Trend</h4>
-            <div className="text-sm text-gray-500">₹ per day</div>
+      {/* GRAPH + ACTIVITY */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* GRAPH */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-lg">Revenue Trend</h4>
+            <span className="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full">
+              ₹ per day
+            </span>
           </div>
 
-          <div style={{ height: 260 }}>
+          <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueSeries}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -126,92 +127,83 @@ export default function DashboardView({
         </div>
 
         {/* LIVE ACTIVITY */}
-        <div className="bg-white p-4 rounded shadow">
-          <h4 className="font-semibold mb-3">Live Activity</h4>
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h4 className="font-semibold mb-4">Live Activity</h4>
 
-          <ul className="space-y-3 text-sm text-gray-700">
+          <ul className="space-y-4">
             {transactions.slice(0, 3).map((t) => (
-              <li key={t.id} className="flex items-start gap-3">
-                <CheckCircle
-                  size={16}
-                  className={
+              <li key={t.id} className="flex gap-3">
+                <span
+                  className={`h-3 w-3 mt-2 rounded-full ${
                     t.status === "SUCCESS"
-                      ? "text-green-600"
-                      : "text-red-500"
-                  }
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
                 />
-
                 <div>
-                  <div className="font-medium">
+                  <p className="text-sm font-medium">
                     {t.status === "SUCCESS"
-                      ? `Payment ₹${t.final_amount} received`
-                      : `Payment failed`}
-                  </div>
-                  <div className="text-xs text-gray-500">
+                      ? `₹${t.final_amount} payment received`
+                      : "Payment failed"}
+                  </p>
+                  <p className="text-xs text-gray-500">
                     {new Date(t.created_at).toLocaleString()}
-                  </div>
+                  </p>
                 </div>
               </li>
             ))}
 
             {transactions.length === 0 && (
-              <li className="text-gray-500 text-center">
+              <p className="text-gray-500 text-sm text-center">
                 No recent activity
-              </li>
+              </p>
             )}
           </ul>
         </div>
       </section>
 
-      {/* RECENT TRANSACTIONS */}
-      <section className="mt-6 bg-white p-4 rounded shadow">
-        <h4 className="font-semibold mb-3">Recent Transactions</h4>
+      {/* TRANSACTIONS */}
+      <section className="bg-white rounded-2xl shadow p-6">
+        <h4 className="font-semibold mb-4">Recent Transactions</h4>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-gray-500">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <th>Txn ID</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Status</th>
-                <th>Time</th>
+                <th className="p-3 text-left">Txn ID</th>
+                <th className="p-3 text-left">Amount</th>
+                <th className="p-3 text-left">Method</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-left">Time</th>
               </tr>
             </thead>
 
             <tbody className="divide-y">
               {transactions.slice(0, 5).map((t) => (
                 <tr key={t.id} className="hover:bg-gray-50">
-                  <td className="py-3">{t.id}</td>
-                  <td>₹{t.final_amount}</td>
-                  <td>{t.gateway_transaction_id || "UPI"}</td>
-                  <td>
+                  <td className="p-3">{t.id}</td>
+                  <td className="p-3">₹{t.final_amount}</td>
+                  <td className="p-3">{t.gateway_transaction_id || "UPI"}</td>
+                  <td className="p-3">
                     <span
-                      className={`px-2 py-1 rounded text-xs ${t.status === "SUCCESS"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                        }`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        t.status === "SUCCESS"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-700"
+                      }`}
                     >
                       {t.status}
                     </span>
                   </td>
-                  <td className="text-gray-500">
+                  <td className="p-3 text-gray-500">
                     {new Date(t.created_at).toLocaleString()}
                   </td>
                 </tr>
               ))}
-
-              {transactions.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="p-4 text-center text-gray-500">
-                    No transactions
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
       </section>
-    </>
+    </div>
   );
 }

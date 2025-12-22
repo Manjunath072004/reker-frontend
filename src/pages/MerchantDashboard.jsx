@@ -2,14 +2,14 @@ import { useEffect, useState, useContext, useMemo } from "react";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import rekerPayLogo from "../assets/Reker-logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { fetchUnreadCount } from "../api/notifications";
-import { Link } from "react-router-dom";
 
 /* Lucide Icons */
 import {
-  Menu, Home, CreditCard, Ticket, BarChart2,
-  ChevronLeft, Settings, Search, TrendingUp, List, LogOut
+  Home, CreditCard, Ticket, BarChart2,
+  ChevronLeft, Settings, Search, TrendingUp,
+  List, LogOut, Bell
 } from "lucide-react";
 
 /* Pages & Components */
@@ -26,31 +26,12 @@ export default function MerchantDashboard() {
   const navigate = useNavigate();
 
   const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    fetchUnreadCount().then((res) =>
-      setCount(res.data.unread_count)
-    );
-  }, []);
-
-
-
   const [merchant, setMerchant] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [active, setActive] = useState("dashboard");
-
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("7d");
   const [transactions, setTransactions] = useState([]);
-
-  const handleLogout = () => {
-    const ok = window.confirm("Are you sure you want to logout?");
-    if (!ok) return;
-
-    logout();               // clears token/context
-    navigate("/login");     // redirect to login
-  };
-
 
   const [kpis, setKpis] = useState({
     total_revenue: 0,
@@ -58,47 +39,48 @@ export default function MerchantDashboard() {
     pending_settlements: 0,
   });
 
+  /* ---------------- NOTIFICATIONS ---------------- */
+  useEffect(() => {
+    fetchUnreadCount().then(res =>
+      setCount(res.data.unread_count)
+    );
+  }, []);
 
-  const fetchKpis = () => {
-    if (!token) return;
-
-    API.get("/analytics/kpis/", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => setKpis(res.data))
-      .catch((err) => console.error("KPI fetch failed:", err));
+  /* ---------------- LOGOUT ---------------- */
+  const handleLogout = () => {
+    if (!window.confirm("Logout from RekerPay?")) return;
+    logout();
+    navigate("/login");
   };
 
-  useEffect(() => {
-    fetchKpis();
-  }, [token]);
-
-
-  /* ---------------- FETCH MERCHANT ---------------- */
+  /* ---------------- KPIs ---------------- */
   useEffect(() => {
     if (!token) return;
+    API.get("/analytics/kpis/", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => setKpis(res.data));
+  }, [token]);
 
+  /* ---------------- MERCHANT ---------------- */
+  useEffect(() => {
+    if (!token) return;
     API.get("/merchants/me/", {
       headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => setMerchant(res.data))
-      .catch(err => console.error(err));
+    }).then(res => setMerchant(res.data));
   }, [token]);
 
-  /* ---------------- FETCH TRANSACTIONS ---------------- */
+  /* ---------------- TRANSACTIONS ---------------- */
   const fetchTransactions = () => {
     if (!token) return;
-
     API.get("/payments/list/", {
       headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => {
-        const sorted = res.data.sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
-        setTransactions(sorted);
-      })
-      .catch(err => console.error(err));
+    }).then(res => {
+      setTransactions(
+        res.data.sort((a, b) =>
+          new Date(b.created_at) - new Date(a.created_at)
+        )
+      );
+    });
   };
 
   useEffect(() => {
@@ -107,7 +89,7 @@ export default function MerchantDashboard() {
     return () => clearInterval(i);
   }, [token]);
 
-  /* ---------------- FILTER TRANSACTIONS ---------------- */
+  /* ---------------- FILTER ---------------- */
   const filteredTransactions = useMemo(() => {
     if (!search) return transactions;
     const q = search.toLowerCase();
@@ -118,30 +100,22 @@ export default function MerchantDashboard() {
     );
   }, [search, transactions]);
 
-  /* ---------------- ANALYTICS DATA (IMPORTANT FIX) ---------------- */
+  /* ---------------- ANALYTICS ---------------- */
   const revenueSeries = useMemo(() => {
     const map = {};
-
     transactions.forEach(t => {
       if (t.status !== "SUCCESS") return;
-
       const day = new Date(t.created_at).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
+        day: "2-digit", month: "short",
       });
-
-      if (!map[day]) {
-        map[day] = { day, revenue: 0, tx: 0 };
-      }
-
+      if (!map[day]) map[day] = { day, revenue: 0, tx: 0 };
       map[day].revenue += Number(t.final_amount);
       map[day].tx += 1;
     });
-
     return Object.values(map).slice(-7);
   }, [transactions]);
 
-  /* ---------------- SIDEBAR NAV ---------------- */
+  /* ---------------- NAV ---------------- */
   const navItems = [
     { key: "dashboard", icon: <Home size={18} />, label: "Dashboard" },
     { key: "pos", icon: <CreditCard size={18} />, label: "Payment (POS)" },
@@ -153,85 +127,91 @@ export default function MerchantDashboard() {
   ];
 
   const menuClass = (k) =>
-    `flex items-center gap-3 cursor-pointer p-2 rounded-lg transition ${active === k
-      ? "bg-green-50 border-l-4 border-green-600 text-green-700"
-      : "text-gray-700 hover:bg-green-50"
-    }`;
+    `flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
+     ${active === k
+        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-[1.03]"
+        : "text-gray-600 hover:bg-green-50 hover:scale-[1.02]"
+     }`;
 
-  /* ---------------- MAIN UI ---------------- */
+  /* ---------------- UI ---------------- */
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50">
+
       {/* SIDEBAR */}
-      <aside className={`${sidebarOpen ? "w-64" : "w-20"} bg-white shadow-lg h-screen p-4 fixed left-0 top-0 border-r transition-all duration-300 z-40`}>
-        <div className="flex items-center justify-between px-2">
+      <aside className={`${sidebarOpen ? "w-64" : "w-20"}
+        bg-white/80 backdrop-blur-xl shadow-xl fixed left-0 top-0 h-screen
+        p-4 border-r border-white/40 transition-all z-40`}>
+
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={rekerPayLogo} className="h-12" alt="RekerPay" />
             {sidebarOpen && (
-              <h1 className="text-lg font-extrabold bg-gradient-to-r from-yellow-500 to-green-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-black tracking-wide bg-gradient-to-r from-green-600 to-lime-500 bg-clip-text text-transparent">
                 RekerPay
               </h1>
             )}
           </div>
           <button onClick={() => setSidebarOpen(s => !s)}>
-            <ChevronLeft size={20} className={`${!sidebarOpen ? "rotate-180" : ""}`} />
+            <ChevronLeft className={`${!sidebarOpen && "rotate-180"} transition`} />
           </button>
         </div>
 
-        <nav className="mt-8 space-y-1">
+        <nav className="mt-10 space-y-2">
           {navItems.map(n => (
-            <div key={n.key} className={menuClass(n.key)} onClick={() => setActive(n.key)}>
-              {n.icon} {sidebarOpen && <span>{n.label}</span>}
+            <div key={n.key}
+              className={menuClass(n.key)}
+              onClick={() => setActive(n.key)}>
+              {n.icon} {sidebarOpen && n.label}
             </div>
           ))}
         </nav>
-        <div className="absolute bottom-6 left-0 w-full px-4">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
-          >
-            <LogOut size={18} />
-            {sidebarOpen && <span className="font-medium">Logout</span>}
-          </button>
-        </div>
 
+        <button
+          onClick={handleLogout}
+          className="absolute bottom-6 left-4 right-4 flex items-center gap-3
+          p-3 rounded-xl text-red-600 hover:bg-red-50 transition">
+          <LogOut size={18} />
+          {sidebarOpen && "Logout"}
+        </button>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <div className={`flex-1 ${sidebarOpen ? "ml-64" : "ml-20"}`}>
         {/* TOPBAR */}
-        <header className="flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-30">
-          {/* LEFT: PAGE TITLE */}
-          <h2 className="text-xl font-semibold capitalize">{active}</h2>
+        <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl
+          border-b border-white/40 shadow-sm p-5 flex justify-between items-center">
 
-          {/* RIGHT: NOTIFICATIONS + SEARCH */}
+          <h2 className="text-2xl font-bold capitalize text-gray-800">
+            {active}
+          </h2>
+
           <div className="flex items-center gap-6">
-            {/*  Notifications */}
             <Link to="/notifications" className="relative">
-              <span className="text-1xl cursor-pointer">🔔</span>
-
+              <Bell className="text-gray-700 hover:text-green-600 transition" />
               {count > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs px-2 rounded-full">
+                <span className="absolute -top-1 -right-2 bg-red-600 text-white
+                text-xs px-2 rounded-full">
                   {count}
                 </span>
               )}
             </Link>
 
-            {/*  Search */}
             <div className="relative">
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search tx / id / amount"
-                className="pl-9 pr-3 py-2 rounded-lg border w-72 text-sm"
+                placeholder="Search transactions"
+                className="pl-10 pr-4 py-2 rounded-xl w-72 text-sm
+                border border-gray-200 bg-white/80 focus:ring-2
+                focus:ring-green-500 outline-none"
               />
-              <Search className="absolute left-2 top-2 text-gray-400" size={16} />
             </div>
           </div>
         </header>
 
-
-        {/* PAGE CONTENT */}
-        <main className="p-6">
+        {/* CONTENT */}
+        <main className="p-8 space-y-8">
           {active === "dashboard" && (
             <DashboardView
               merchant={merchant}
@@ -242,12 +222,7 @@ export default function MerchantDashboard() {
               kpis={kpis}
             />
           )}
-
-          {active === "pos" && <POSPage refreshTransactions={() => {
-            fetchTransactions();
-            fetchKpis();
-          }} />
-          }
+          {active === "pos" && <POSPage refreshTransactions={fetchTransactions} />}
           {active === "coupons" && <Coupons />}
           {active === "transactions" && <TransactionsView transactions={filteredTransactions} />}
           {active === "settlements" && <SettlementsView />}

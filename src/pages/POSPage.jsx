@@ -1,229 +1,343 @@
 import { useState, useContext, useEffect } from "react";
+import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
-import { verifyCoupon } from "../api/coupons";
-import { createPayment, verifyPayment } from "../api/payments";   // NEW API
+import { createPayment, verifyPayment } from "../api/payments";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function POSPage(refreshTransactions ) {
+export default function POSPage({ refreshTransactions }) {
   const { token } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // INPUTS
   const [amount, setAmount] = useState("");
   const [mobile, setMobile] = useState("");
   const [description, setDescription] = useState("");
 
-  // COUPON
   const [coupon, setCoupon] = useState(null);
   const [discount, setDiscount] = useState(0);
   const [finalAmount, setFinalAmount] = useState(null);
 
-  // PAYMENT FLOW
   const [paymentId, setPaymentId] = useState(null);
   const [qrCreated, setQrCreated] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("idle");
 
- 
-  // LOAD COUPON FROM COUPON PAGE
-  
+  const QR_TIME = 120; // seconds (2 minutes)
+  const [timeLeft, setTimeLeft] = useState(QR_TIME);
+  const [qrExpired, setQrExpired] = useState(false);
+
+
+  const quickAmounts = [100, 200, 500, 1000];
+
+  /* ---------------- COUPON LOAD ---------------- */
   useEffect(() => {
-    if (location.state && location.state.coupon) {
+    if (location.state?.coupon) {
       const c = location.state.coupon;
       setCoupon(c);
-
       if (amount) calculateDiscount(c, Number(amount));
     }
   }, [location.state]);
 
- 
-  // RECALCULATE WHEN AMOUNT CHANGES
- 
   useEffect(() => {
-    if (coupon && amount) {
-      calculateDiscount(coupon, Number(amount));
-    }
+    if (coupon && amount) calculateDiscount(coupon, Number(amount));
   }, [amount]);
 
-  
-  // DISCOUNT CALCULATION
-  
   const calculateDiscount = (c, amt) => {
-    let final;
+    const d =
+      c.discount_type === "flat"
+        ? Number(c.discount_value)
+        : Math.min((amt * c.discount_value) / 100, c.max_discount_amount || amt);
 
-    if (c.discount_type === "flat") {
-      final = Number(c.discount_value);
-    } else {
-      const percentVal = (amt * c.discount_value) / 100;
-      final = Math.min(
-        percentVal,
-        c.max_discount_amount || percentVal
-      );
-    }
-
-    setDiscount(final);
-    setFinalAmount(amt - final);
+    setDiscount(d);
+    setFinalAmount(amt - d);
   };
 
- 
-  // CREATE PAYMENT IN BACKEND
+  useEffect(() => {
+    if (!qrCreated || paymentStatus !== "waiting") return;
 
+    setTimeLeft(QR_TIME);
+    setQrExpired(false);
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setQrExpired(true);
+          setPaymentStatus("idle");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrCreated, paymentStatus]);
+
+  /* ---------------- PAYMENT ---------------- */
   const handleGenerateQR = async () => {
-    if (!amount) {
-      alert("Please enter amount");
-      return;
-    }
+    if (!amount) return alert("Enter bill amount");
 
     try {
-      const body = {
-        amount: Number(amount),
-        coupon_code: coupon ? coupon.code : "",
-      };
-
-      const res = await createPayment(body, token);
+      const res = await createPayment(
+        { amount: Number(amount), coupon_code: coupon?.code || "" },
+        token
+      );
 
       setPaymentId(res.payment.id);
       setQrCreated(true);
+      setQrExpired(false);
       setPaymentStatus("waiting");
 
-      // Simulate payment success after 4s
-      setTimeout(() => {
-        confirmPayment(res.payment.id);
-      }, 4000);
-
-    } catch (err) {
-      console.log("Payment error:", err);
+      setTimeout(() => confirmPayment(res.payment.id), 4000);
+    } catch {
       alert("Payment initiation failed");
     }
   };
 
- 
-  // CONFIRM PAYMENT STATUS IN BACKEND
-  
+
   const confirmPayment = async (id) => {
-    try {
-      const res = await verifyPayment(id, "SUCCESS", token);
-      setPaymentStatus("success");
-      if (refreshTransactions) refreshTransactions();
-    } catch (err) {
-      console.log("Verify error:", err);
-    }
+    await verifyPayment(id, "SUCCESS", token);
+    setPaymentStatus("success");
+    refreshTransactions?.();
   };
 
-  
-  // OPEN COUPON PAGE
-  
-  const goToCouponPage = () => {
-    if (!amount) {
-      alert("Enter amount before selecting coupon");
-      return;
-    }
-    navigate("/coupons", { state: { from: "pos" } });
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
 
   return (
-    <div className="p-10 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">POS Payment</h1>
+    <div className="relative min-h-screen bg-gradient-to-br from-green-50 to-white px-8 py-12 overflow-hidden">
 
-      {/* MAIN BLOCK */}
-      <div className="border rounded-xl p-6 shadow mb-10 bg-white">
+      {/* Background blobs */}
+      <motion.div
+        className="absolute -top-32 -left-32 w-[420px] h-[420px] bg-green-300 rounded-full blur-3xl opacity-30"
+        animate={{ scale: 1.1 }}
+      />
+      <motion.div
+        className="absolute -bottom-40 -right-40 w-[460px] h-[460px] bg-yellow-300 rounded-full blur-3xl opacity-20"
+        animate={{ scale: 1.1 }}
+      />
 
-        <h2 className="text-xl font-semibold mb-4">Enter Payment Details</h2>
+      {/* GRID */}
+      <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Amount */}
-        <div className="mb-4">
-          <label className="font-medium">Bill Amount</label>
+        {/* ================= BILL INPUT ================= */}
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="lg:col-span-2 backdrop-blur-xl bg-white/40 border border-white/30 rounded-2xl shadow-xl p-8"
+        >
+          <h2 className="text-2xl font-bold mb-4">Enter Bill Amount</h2>
+
           <input
             type="number"
-            className="border p-3 rounded w-full mt-1"
-            placeholder="₹ Enter amount"
+            placeholder="₹ 0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            className="w-full text-4xl font-semibold p-6 rounded-xl bg-white/70 border focus:ring-2 focus:ring-green-400 outline-none"
           />
-        </div>
 
-        {/* Mobile */}
-        <div className="mb-4">
-          <label className="font-medium">Customer Mobile (Optional)</label>
-          <input
-            type="text"
-            className="border p-3 rounded w-full mt-1"
-            placeholder="+91 XXXXX XXXXX"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-          />
-        </div>
-
-        {/* Apply Coupon */}
-        <button
-          onClick={goToCouponPage}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded mb-4"
-        >
-          Apply Coupon
-        </button>
-
-        {/* Coupon Display */}
-        {coupon && (
-          <div className="mt-4 p-4 border rounded bg-gray-50">
-            <p><strong>Coupon:</strong> {coupon.code}</p>
-            <p><strong>Discount:</strong> ₹{discount}</p>
-            <p><strong>Final Payable:</strong> ₹{finalAmount}</p>
+          {/* Quick amounts */}
+          <div className="flex gap-3 mt-4 flex-wrap">
+            {quickAmounts.map((amt) => (
+              <button
+                key={amt}
+                onClick={() => setAmount(amt)}
+                className="px-5 py-2 rounded-full bg-white/60 border hover:bg-green-100 hover:border-green-400 transition text-sm font-medium"
+              >
+                ₹{amt}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Description */}
-        <div className="mb-4 mt-4">
-          <label className="font-medium">Description (Optional)</label>
-          <input
-            type="text"
-            className="border p-3 rounded w-full mt-1"
-            placeholder="e.g., Restaurant bill"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <input
+              placeholder="Customer Mobile (optional)"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              className="p-3 rounded-xl bg-white/70 border"
+            />
+            <input
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="p-3 rounded-xl bg-white/70 border"
+            />
+          </div>
 
-        {/* QR BUTTON */}
-        <button
-          onClick={handleGenerateQR}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded text-lg mt-6"
+          {/* Coupon */}
+          <div className="mt-6 flex items-center justify-between">
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => navigate("/coupons", { state: { from: "pos" } })}
+              className="px-5 py-2 rounded-full bg-green-100 text-green-700 font-medium hover:bg-green-200 transition"
+            >
+              🎟️ Apply Coupon
+            </motion.button>
+
+            {coupon && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-300 px-4 py-1 rounded-full text-sm">
+                <span className="font-medium">{coupon.code}</span>
+                <button
+                  onClick={() => {
+                    setCoupon(null);
+                    setDiscount(0);
+                    setFinalAmount(null);
+                  }}
+                  className="text-red-500 hover:text-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* ================= SUMMARY ================= */}
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="backdrop-blur-xl bg-white/40 border border-white/30 rounded-2xl shadow-xl p-8"
         >
-          GENERATE QR
-        </button>
+          <h3 className="text-xl font-semibold mb-4">Payment Summary</h3>
 
-      </div>
+          <div className="space-y-3 text-gray-700">
+            <div className="flex justify-between">
+              <span>Bill Amount</span>
+              <span>₹{amount || "0.00"}</span>
+            </div>
 
-      {/* QR + STATUS */}
-      {qrCreated && (
-        <div className="border rounded-xl p-6 shadow bg-white">
-          <h2 className="text-xl font-semibold mb-4">UPI QR Code</h2>
+            <div className="flex justify-between">
+              <span>Discount</span>
+              <span className="text-green-600">- ₹{discount}</span>
+            </div>
 
-          <div className="flex items-center justify-center mb-4">
-            <div className="border p-6 rounded bg-white">
-              <p className="text-center text-gray-400">[ QR CODE ]</p>
+            <hr />
+
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total Payable</span>
+              <span>₹{finalAmount ?? amount ?? "0.00"}</span>
             </div>
           </div>
 
-          <p><strong>Bill Amount:</strong> ₹{amount}</p>
-          <p><strong>Final Amount:</strong> ₹{finalAmount || amount}</p>
-          <p><strong>Payment ID:</strong> {paymentId}</p>
-          <p><strong>Coupon Applied:</strong> {coupon ? "YES" : "NO"}</p>
+          {/* Status bar */}
+          <div className="mt-6">
+            <div className="flex justify-between text-sm mb-1">
+              <span>Status</span>
+              <span className={
+                paymentStatus === "waiting"
+                  ? "text-yellow-600"
+                  : paymentStatus === "success"
+                    ? "text-green-600"
+                    : "text-gray-500"
+              }>
+                {paymentStatus === "idle" && "Not started"}
+                {paymentStatus === "waiting" && "Awaiting payment"}
+                {paymentStatus === "success" && "Completed"}
+              </span>
+            </div>
 
-          <div className="mt-6 p-4 rounded bg-gray-50 border">
-            {paymentStatus === "waiting" && (
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-700 ${paymentStatus === "waiting"
+                  ? "w-2/3 bg-yellow-400"
+                  : paymentStatus === "success"
+                    ? "w-full bg-green-500"
+                    : "w-0"
+                  }`}
+              />
+            </div>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleGenerateQR}
+            className="mt-8 w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold shadow-lg"
+          >
+            GENERATE UPI QR
+          </motion.button>
+        </motion.div>
+
+        {/* ================= QR ================= */}
+
+        {qrCreated && (
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="lg:col-span-3 backdrop-blur-xl bg-white/40
+      border border-white/30 rounded-2xl shadow-xl
+      p-10 text-center"
+          >
+            <h3 className="text-xl font-semibold mb-2">
+              Scan & Pay
+            </h3>
+
+            {/* TIMER */}
+            {!qrExpired && paymentStatus === "waiting" && (
+              <p className="text-sm text-gray-600 mb-4">
+                QR expires in{" "}
+                <span className="font-bold text-red-600">
+                  {formatTime(timeLeft)}
+                </span>
+              </p>
+            )}
+
+            {/* QR BOX */}
+            <div className="relative mx-auto w-52 h-52 flex items-center justify-center
+      bg-white rounded-2xl shadow-md mb-6"
+            >
+              {/* Pulse animation */}
+              {paymentStatus === "waiting" && !qrExpired && (
+                <motion.div
+                  className="absolute inset-0 rounded-2xl border-2 border-green-400"
+                  animate={{ opacity: [0.2, 0.7, 0.2] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                />
+              )}
+
+              {/* QR OR EXPIRED */}
+              {!qrExpired ? (
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=UPI-DUMMY-PAYMENT"
+                  alt="UPI QR"
+                  className="w-44 h-44"
+                />
+              ) : (
+                <div className="text-center">
+                  <p className="text-red-600 font-semibold mb-2">
+                    QR Expired
+                  </p>
+                  <button
+                    onClick={handleGenerateQR}
+                    className="px-4 py-2 bg-green-600 text-white
+              rounded-full text-sm font-medium"
+                  >
+                    Generate New QR
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {paymentStatus === "waiting" && !qrExpired && (
               <p className="text-yellow-600 font-semibold">
-                Waiting for customer to complete payment...
+                Waiting for customer to complete payment…
               </p>
             )}
 
             {paymentStatus === "success" && (
-              <p className="text-green-600 font-bold text-lg">
-                Payment Successful ✓
-              </p>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-green-700 font-bold text-2xl"
+              >
+                ✓ Payment Successful
+              </motion.div>
             )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

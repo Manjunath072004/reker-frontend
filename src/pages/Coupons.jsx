@@ -1,4 +1,5 @@
 import { useState, useContext } from "react";
+import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { verifyCoupon } from "../api/coupons";
 import API from "../api/axios";
@@ -16,7 +17,7 @@ export default function Coupons() {
 
   const [loading, setLoading] = useState(false);
 
-  /* ---------------- VERIFY MANUAL COUPON ---------------- */
+  /* ---------- VERIFY COUPON ---------- */
   const handleVerify = async () => {
     if (!code.trim()) return alert("Enter coupon code");
 
@@ -30,7 +31,7 @@ export default function Coupons() {
     setLoading(false);
   };
 
-  /* ---------------- FETCH COUPONS BY PHONE ---------------- */
+  /* ---------- FETCH BY PHONE ---------- */
   const fetchCouponsByPhone = async () => {
     if (!phone.trim()) return alert("Enter phone number");
 
@@ -48,144 +49,152 @@ export default function Coupons() {
     setLoading(false);
   };
 
-  /* ---------------- APPLY TO POS ---------------- */
+  /* ---------- APPLY ---------- */
   const applyToPOS = (selectedCoupon) => {
     navigate("/pos", {
-      state: {
-        coupon: selectedCoupon,
-        applied: true,
-      },
+      state: { coupon: selectedCoupon },
     });
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Coupons</h1>
+    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-white px-8 py-12 overflow-hidden">
 
-      {/* MANUAL COUPON */}
-      <div className="border rounded-lg p-6 mb-10">
-        <h2 className="font-semibold mb-4">Have a Coupon?</h2>
+      {/* Decorative blur */}
+      <div className="absolute -top-40 -left-40 w-[400px] h-[400px] bg-emerald-300 rounded-full blur-3xl opacity-30" />
+      <div className="absolute -bottom-40 -right-40 w-[450px] h-[450px] bg-lime-300 rounded-full blur-3xl opacity-20" />
 
-        <div className="flex gap-3 mb-4">
-          <input
-            className="border p-2 rounded w-64"
-            placeholder="Enter coupon code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <button
-            onClick={handleVerify}
-            className="bg-green-600 text-white px-5 rounded"
-          >
-            Verify
-          </button>
+      <div className="relative z-10 max-w-6xl mx-auto space-y-12">
+
+        {/* ================= HEADER ================= */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            Apply Discount Coupon
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Verify coupon or find available offers for customer
+          </p>
         </div>
 
-        {coupon && (
-          <CouponTable coupons={[coupon]} onApply={applyToPOS} />
-        )}
-      </div>
+        {/* ================= MANUAL COUPON ================= */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="backdrop-blur-xl bg-white/50 border border-white/30 rounded-2xl shadow-xl p-8"
+        >
+          <h2 className="text-xl font-semibold mb-4">Have a Coupon Code?</h2>
 
-      {/* OR DIVIDER */}
-      <div className="my-10 flex items-center max-w-xl mx-auto">
-        <div className="flex-grow border-t border-gray-300" />
-        <span className="text-sm text-gray-500 px-4">OR</span>
-        <div className="flex-grow border-t border-gray-300" />
-      </div>
+          <div className="flex flex-col md:flex-row gap-4">
+            <input
+              placeholder="Enter coupon code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="flex-1 p-4 rounded-xl border bg-white/70 focus:ring-2 focus:ring-emerald-400 outline-none"
+            />
 
-      {/* PHONE BASED COUPONS */}
-      <div className="border rounded-lg p-6">
-        <h2 className="font-semibold mb-4">Find Coupons by Phone</h2>
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow"
+            >
+              {loading ? "Verifying..." : "Verify Coupon"}
+            </button>
+          </div>
 
-        <div className="flex gap-3 mb-6">
-          <input
-            className="border p-2 rounded w-64"
-            placeholder="Customer phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <button
-            onClick={fetchCouponsByPhone}
-            className="bg-blue-600 text-white px-5 rounded"
-          >
-            Check Available Coupons
-          </button>
+          {coupon && (
+            <div className="mt-6">
+              <CouponCard coupon={coupon} onApply={applyToPOS} />
+            </div>
+          )}
+        </motion.div>
+
+        {/* ================= DIVIDER ================= */}
+        <div className="flex items-center gap-4">
+          <div className="flex-grow border-t border-gray-300" />
+          <span className="text-sm text-gray-500">OR</span>
+          <div className="flex-grow border-t border-gray-300" />
         </div>
 
-        {phoneCoupons.length === 0 ? (
-          <p className="text-gray-500">No coupons found</p>
-        ) : (
-          <CouponTable coupons={phoneCoupons} onApply={applyToPOS} />
-        )}
+        {/* ================= PHONE COUPONS ================= */}
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="backdrop-blur-xl bg-white/50 border border-white/30 rounded-2xl shadow-xl p-8"
+        >
+          <h2 className="text-xl font-semibold mb-4">
+            Find Coupons by Phone Number
+          </h2>
+
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <input
+              placeholder="Customer phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="flex-1 p-4 rounded-xl border bg-white/70 focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+
+            <button
+              onClick={fetchCouponsByPhone}
+              disabled={loading}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow"
+            >
+              {loading ? "Checking..." : "Check Coupons"}
+            </button>
+          </div>
+
+          {phoneCoupons.length === 0 ? (
+            <p className="text-gray-500">No coupons found for this number</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {phoneCoupons.map((c) => (
+                <CouponCard key={c.id} coupon={c} onApply={applyToPOS} />
+              ))}
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
 }
 
-/* ---------------- COUPON TABLE ---------------- */
+/* ================= COUPON CARD ================= */
 
-function CouponTable({ coupons, onApply }) {
+function CouponCard({ coupon, onApply }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border text-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-3 text-left">Status</th>
-            <th className="p-3 text-left">Code</th>
-            <th className="p-3 text-left">Type</th>
-            <th className="p-3 text-left">Value</th>
-            <th className="p-3 text-left">Min Order</th>
-            <th className="p-3 text-left">Max Discount</th>
-            <th className="p-3 text-left">Valid Until</th>
-            <th className="p-3 text-left">Action</th>
-          </tr>
-        </thead>
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className="rounded-2xl border bg-white/70 shadow-lg p-6 relative overflow-hidden"
+    >
+      <div className="absolute top-0 right-0 px-4 py-1 text-xs font-semibold rounded-bl-xl
+        bg-emerald-600 text-white">
+        {coupon.discount_type === "percent"
+          ? `${coupon.discount_value}% OFF`
+          : `₹${coupon.discount_value} OFF`}
+      </div>
 
-        <tbody>
-          {coupons.map((c) => (
-            <tr key={c.id} className="border-t hover:bg-gray-50">
-              <td className="p-3">
-                {c.is_active ? (
-                  <span className="text-green-600 font-medium">Active</span>
-                ) : (
-                  <span className="text-red-600">Inactive</span>
-                )}
-              </td>
+      <h3 className="text-lg font-bold mb-2">{coupon.code}</h3>
 
-              <td className="p-3 font-mono">{c.code}</td>
+      <p className="text-sm text-gray-600 mb-1">
+        Min Order: ₹{coupon.min_order_amount}
+      </p>
 
-              <td className="p-3 capitalize">{c.discount_type}</td>
+      <p className="text-sm text-gray-600 mb-1">
+        Max Discount:{" "}
+        {coupon.max_discount_amount
+          ? `₹${coupon.max_discount_amount}`
+          : "No limit"}
+      </p>
 
-              <td className="p-3">
-                {c.discount_type === "percent"
-                  ? `${c.discount_value}%`
-                  : `₹${c.discount_value}`}
-              </td>
+      <p className="text-sm text-gray-600">
+        Valid till:{" "}
+        {new Date(coupon.expiry_date).toLocaleDateString("en-IN")}
+      </p>
 
-              <td className="p-3">₹{c.min_order_amount}</td>
-
-              <td className="p-3">
-                {c.max_discount_amount
-                  ? `₹${c.max_discount_amount}`
-                  : "—"}
-              </td>
-
-              <td className="p-3">
-                {new Date(c.expiry_date).toLocaleDateString("en-IN")}
-              </td>
-
-              <td className="p-3">
-                <button
-                  onClick={() => onApply(c)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded"
-                >
-                  Apply
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      <button
+        onClick={() => onApply(coupon)}
+        className="mt-4 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold"
+      >
+        Apply to POS
+      </button>
+    </motion.div>
   );
 }

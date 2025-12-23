@@ -22,6 +22,7 @@ import Coupons from "./pages/Coupons";
 import POSPage from "./pages/POSPage";
 
 import Notifications from "./pages/Notifications";
+// import TransactionsPage from "./pages/TransactionsPage";
 
 
 export default function App() {
@@ -51,6 +52,9 @@ export default function App() {
           <Route path="/pos" element={<POSPage />} />
 
           <Route path="/notifications" element={<Notifications />} />
+
+          {/* <Route path="/dashboard/transactions" element={<TransactionsPage />} /> */}
+          
 
         </Routes>
       </BrowserRouter>

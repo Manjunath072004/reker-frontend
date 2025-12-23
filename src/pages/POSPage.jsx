@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { createPayment, verifyPayment } from "../api/payments";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createTransaction } from "../api/transactions";
 
 export default function POSPage({ refreshTransactions }) {
   const { token } = useContext(AuthContext);
@@ -82,12 +83,18 @@ export default function POSPage({ refreshTransactions }) {
         token
       );
 
-      setPaymentId(res.payment.id);
+      const paymentId = res.payment.id;
+
+      //  CREATE TRANSACTION IN DB
+      await createTransaction(paymentId);
+
+      setPaymentId(paymentId);
       setQrCreated(true);
       setQrExpired(false);
       setPaymentStatus("waiting");
 
-      setTimeout(() => confirmPayment(res.payment.id), 4000);
+      setTimeout(() => confirmPayment(paymentId), 4000);
+
     } catch {
       alert("Payment initiation failed");
     }

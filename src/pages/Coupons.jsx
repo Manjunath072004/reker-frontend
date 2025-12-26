@@ -5,6 +5,9 @@ import { verifyCoupon } from "../api/coupons";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
+/* ---------- PHONE VALIDATION ---------- */
+const isValidIndianPhone = (phone) => /^[6-9]\d{9}$/.test(phone);
+
 export default function Coupons() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -16,87 +19,118 @@ export default function Coupons() {
   const [phoneCoupons, setPhoneCoupons] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   /* ---------- VERIFY COUPON ---------- */
   const handleVerify = async () => {
-    if (!code.trim()) return alert("Enter coupon code");
+    if (!code.trim()) {
+      setError("Please enter a coupon code");
+      return;
+    }
 
     setLoading(true);
+    setError("");
+    setCoupon(null);
+
     try {
       const res = await verifyCoupon(code, token);
       setCoupon(res.data.coupon);
     } catch (err) {
-      alert(err.response?.data?.error || "Invalid coupon");
+      setError(err.response?.data?.error || "Invalid coupon code");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  /* ---------- FETCH BY PHONE ---------- */
+  /* ---------- FETCH COUPONS BY PHONE ---------- */
   const fetchCouponsByPhone = async () => {
-    if (!phone.trim()) return alert("Enter phone number");
+    setError("");
+    setPhoneCoupons([]);
+
+    if (!phone.trim()) {
+      setError("Please enter your phone number");
+      return;
+    }
+
+    if (!/^\d+$/.test(phone)) {
+      setError("Phone number must contain only digits");
+      return;
+    }
+
+    if (!isValidIndianPhone(phone)) {
+      setError("Phone number must be exactly 10 digits");
+      return;
+    }
 
     setLoading(true);
+
     try {
       const res = await API.post(
         "/coupons/by-phone/",
         { phone },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setPhoneCoupons(res.data || []);
-    } catch {
-      alert("Failed to fetch coupons");
+
+      if (!res.data || res.data.length === 0) {
+        setError("No coupons available for this phone number");
+        return;
+      }
+
+      setPhoneCoupons(res.data);
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+        "Coupon does not exist for this phone number"
+      );
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   /* ---------- APPLY ---------- */
   const applyToPOS = (selectedCoupon) => {
-    navigate("/pos", {
-      state: { coupon: selectedCoupon },
-    });
+    navigate("/pos", { state: { coupon: selectedCoupon } });
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-white px-8 py-12 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-emerald-50 to-white px-8 py-12">
+      <div className="max-w-6xl mx-auto space-y-12">
 
-      {/* Decorative blur */}
-      <div className="absolute -top-40 -left-40 w-[400px] h-[400px] bg-emerald-300 rounded-full blur-3xl opacity-30" />
-      <div className="absolute -bottom-40 -right-40 w-[450px] h-[450px] bg-lime-300 rounded-full blur-3xl opacity-20" />
-
-      <div className="relative z-10 max-w-6xl mx-auto space-y-12">
-
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
             Apply Discount Coupon
           </h1>
           <p className="text-gray-500 mt-1">
-            Verify coupon or find available offers for customer
+            Verify coupon or find available offers
           </p>
         </div>
 
-        {/* ================= MANUAL COUPON ================= */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="backdrop-blur-xl bg-white/50 border border-white/30 rounded-2xl shadow-xl p-8"
-        >
+        {/* ERROR MESSAGE */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
+            {error}
+          </div>
+        )}
+
+        {/* MANUAL COUPON */}
+        <motion.div className="bg-white/70 rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold mb-4">Have a Coupon Code?</h2>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex gap-4">
             <input
               placeholder="Enter coupon code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="flex-1 p-4 rounded-xl border bg-white/70 focus:ring-2 focus:ring-emerald-400 outline-none"
+              className="flex-1 p-4 rounded-xl border focus:ring-2 focus:ring-emerald-400 outline-none"
             />
 
             <button
               onClick={handleVerify}
               disabled={loading}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow"
+              className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold"
             >
-              {loading ? "Verifying..." : "Verify Coupon"}
+              {loading ? "Verifying..." : "Verify"}
             </button>
           </div>
 
@@ -114,36 +148,33 @@ export default function Coupons() {
           <div className="flex-grow border-t border-gray-300" />
         </div>
 
-        {/* ================= PHONE COUPONS ================= */}
-        <motion.div
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="backdrop-blur-xl bg-white/50 border border-white/30 rounded-2xl shadow-xl p-8"
-        >
+        {/* PHONE COUPONS */}
+        <motion.div className="bg-white/70 rounded-2xl shadow-xl p-8">
           <h2 className="text-xl font-semibold mb-4">
             Find Coupons by Phone Number
           </h2>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex gap-4 mb-6">
             <input
-              placeholder="Customer phone number"
+              placeholder="10-digit phone number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="flex-1 p-4 rounded-xl border bg-white/70 focus:ring-2 focus:ring-blue-400 outline-none"
+              maxLength={10}
+              onChange={(e) =>
+                setPhone(e.target.value.replace(/\D/g, ""))
+              }
+              className="flex-1 p-4 rounded-xl border focus:ring-2 focus:ring-blue-400 outline-none"
             />
 
             <button
               onClick={fetchCouponsByPhone}
               disabled={loading}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow"
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold"
             >
               {loading ? "Checking..." : "Check Coupons"}
             </button>
           </div>
 
-          {phoneCoupons.length === 0 ? (
-            <p className="text-gray-500">No coupons found for this number</p>
-          ) : (
+          {phoneCoupons.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {phoneCoupons.map((c) => (
                 <CouponCard key={c.id} coupon={c} onApply={applyToPOS} />
@@ -156,32 +187,23 @@ export default function Coupons() {
   );
 }
 
-/* ================= COUPON CARD ================= */
-
+/* ---------- COUPON CARD ---------- */
 function CouponCard({ coupon, onApply }) {
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
-      className="rounded-2xl border bg-white/70 shadow-lg p-6 relative overflow-hidden"
+      className="rounded-2xl border bg-white shadow-lg p-6"
     >
-      <div className="absolute top-0 right-0 px-4 py-1 text-xs font-semibold rounded-bl-xl
-        bg-emerald-600 text-white">
+      <div className="text-sm font-bold text-emerald-600 mb-2">
         {coupon.discount_type === "percent"
           ? `${coupon.discount_value}% OFF`
           : `₹${coupon.discount_value} OFF`}
       </div>
 
-      <h3 className="text-lg font-bold mb-2">{coupon.code}</h3>
+      <h3 className="text-lg font-bold">{coupon.code}</h3>
 
-      <p className="text-sm text-gray-600 mb-1">
+      <p className="text-sm text-gray-600">
         Min Order: ₹{coupon.min_order_amount}
-      </p>
-
-      <p className="text-sm text-gray-600 mb-1">
-        Max Discount:{" "}
-        {coupon.max_discount_amount
-          ? `₹${coupon.max_discount_amount}`
-          : "No limit"}
       </p>
 
       <p className="text-sm text-gray-600">
@@ -191,7 +213,7 @@ function CouponCard({ coupon, onApply }) {
 
       <button
         onClick={() => onApply(coupon)}
-        className="mt-4 w-full py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold"
+        className="mt-4 w-full py-2 bg-orange-500 text-white rounded-xl font-semibold"
       >
         Apply to POS
       </button>

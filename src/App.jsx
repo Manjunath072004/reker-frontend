@@ -23,40 +23,43 @@ import POSPage from "./pages/POSPage";
 
 import Notifications from "./pages/Notifications";
 // import TransactionsPage from "./pages/TransactionsPage";
+import { OrderProvider } from "./context/OrderContext";
 
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          {/* Landing Page */}
-          <Route path="/Landing-Page" element={<LandingPage />} />
-          {/* Authentication */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/otp-verify" element={<OtpVerify />} />
-          <Route path="/forgot-password" element={<ForgotPageScreen />} />
+        <OrderProvider>
+          <Routes>
+            {/* Landing Page */}
+            <Route path="/Landing-Page" element={<LandingPage />} />
+            {/* Authentication */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/otp-verify" element={<OtpVerify />} />
+            <Route path="/forgot-password" element={<ForgotPageScreen />} />
 
-          {/* Merchant Module */}
-          <Route path="/merchant-dashboard" element={<MerchantDashboard />} />
-          <Route path="/merchant/create" element={<CreateMerchant />} />
-          <Route path="/merchant/list" element={<MerchantList />} />
-          <Route path="/merchant/profile" element={<MerchantProfile />} />
+            {/* Merchant Module */}
+            <Route path="/merchant-dashboard" element={<MerchantDashboard />} />
+            <Route path="/merchant/create" element={<CreateMerchant />} />
+            <Route path="/merchant/list" element={<MerchantList />} />
+            <Route path="/merchant/profile" element={<MerchantProfile />} />
 
-          {/* Coupons Module */}
-          <Route path="/coupons/verify" element={<VerifyCoupon />} />
-          <Route path="/coupons/apply" element={<ApplyCoupon />} />
-          <Route path="/coupons/list" element={<CouponList />} />
-          <Route path="/coupons" element={<Coupons />} />
-          <Route path="/pos" element={<POSPage />} />
+            {/* Coupons Module */}
+            <Route path="/coupons/verify" element={<VerifyCoupon />} />
+            <Route path="/coupons/apply" element={<ApplyCoupon />} />
+            <Route path="/coupons/list" element={<CouponList />} />
+            <Route path="/coupons" element={<Coupons />} />
+            <Route path="/pos" element={<POSPage />} />
 
-          <Route path="/notifications" element={<Notifications />} />
+            <Route path="/notifications" element={<Notifications />} />
 
-          {/* <Route path="/dashboard/transactions" element={<TransactionsPage />} /> */}
-          
+            {/* <Route path="/dashboard/transactions" element={<TransactionsPage />} /> */}
 
-        </Routes>
+
+          </Routes>
+        </OrderProvider>
       </BrowserRouter>
     </AuthProvider>
   );

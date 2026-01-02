@@ -4,13 +4,15 @@ import { AuthContext } from "../context/AuthContext";
 import { createPayment, verifyPayment } from "../api/payments";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createTransaction } from "../api/transactions";
+import { OrderContext } from "../context/OrderContext";
 
 export default function POSPage({ refreshTransactions }) {
   const { token } = useContext(AuthContext);
+  const { orderAmount, setOrderAmount } = useContext(OrderContext);
+
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [amount, setAmount] = useState("");
   const [mobile, setMobile] = useState("");
   const [description, setDescription] = useState("");
 
@@ -22,36 +24,41 @@ export default function POSPage({ refreshTransactions }) {
   const [qrCreated, setQrCreated] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("idle");
 
-  const QR_TIME = 120; // seconds (2 minutes)
+  const QR_TIME = 120;
   const [timeLeft, setTimeLeft] = useState(QR_TIME);
   const [qrExpired, setQrExpired] = useState(false);
 
-
   const quickAmounts = [100, 200, 500, 1000];
 
-  /* ---------------- COUPON LOAD ---------------- */
+  /* ---------------- LOAD COUPON FROM COUPON PAGE ---------------- */
   useEffect(() => {
     if (location.state?.coupon) {
-      const c = location.state.coupon;
-      setCoupon(c);
-      if (amount) calculateDiscount(c, Number(amount));
+      setCoupon(location.state.coupon);
     }
   }, [location.state]);
 
+  /* ---------------- RECALCULATE DISCOUNT ---------------- */
   useEffect(() => {
-    if (coupon && amount) calculateDiscount(coupon, Number(amount));
-  }, [amount]);
+    if (!coupon || !orderAmount) {
+      setDiscount(0);
+      setFinalAmount(orderAmount || "");
+      return;
+    }
 
-  const calculateDiscount = (c, amt) => {
+    const amt = Number(orderAmount);
     const d =
-      c.discount_type === "flat"
-        ? Number(c.discount_value)
-        : Math.min((amt * c.discount_value) / 100, c.max_discount_amount || amt);
+      coupon.discount_type === "flat"
+        ? Number(coupon.discount_value)
+        : Math.min(
+          (amt * coupon.discount_value) / 100,
+          coupon.max_discount_amount || amt
+        );
 
     setDiscount(d);
     setFinalAmount(amt - d);
-  };
+  }, [coupon, orderAmount]);
 
+  /* ---------------- QR TIMER ---------------- */
   useEffect(() => {
     if (!qrCreated || paymentStatus !== "waiting") return;
 
@@ -75,17 +82,19 @@ export default function POSPage({ refreshTransactions }) {
 
   /* ---------------- PAYMENT ---------------- */
   const handleGenerateQR = async () => {
-    if (!amount) return alert("Enter bill amount");
+    if (!orderAmount) return alert("Enter bill amount");
 
     try {
       const res = await createPayment(
-        { amount: Number(amount), coupon_code: coupon?.code || "" },
+        {
+          amount: Number(finalAmount ?? orderAmount),
+          coupon_code: coupon?.code || "",
+        },
         token
       );
 
       const paymentId = res.payment.id;
 
-      //  CREATE TRANSACTION IN DB
       await createTransaction(paymentId);
 
       setPaymentId(paymentId);
@@ -94,12 +103,10 @@ export default function POSPage({ refreshTransactions }) {
       setPaymentStatus("waiting");
 
       setTimeout(() => confirmPayment(paymentId), 4000);
-
     } catch {
       alert("Payment initiation failed");
     }
   };
-
 
   const confirmPayment = async (id) => {
     await verifyPayment(id, "SUCCESS", token);
@@ -112,7 +119,6 @@ export default function POSPage({ refreshTransactions }) {
     const s = sec % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
-
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-green-50 to-white px-8 py-12 overflow-hidden">
@@ -141,8 +147,8 @@ export default function POSPage({ refreshTransactions }) {
           <input
             type="number"
             placeholder="₹ 0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={orderAmount}
+            onChange={(e) => setOrderAmount(e.target.value)}
             className="w-full text-4xl font-semibold p-6 rounded-xl bg-white/70 border focus:ring-2 focus:ring-green-400 outline-none"
           />
 
@@ -151,7 +157,7 @@ export default function POSPage({ refreshTransactions }) {
             {quickAmounts.map((amt) => (
               <button
                 key={amt}
-                onClick={() => setAmount(amt)}
+                onClick={() => setOrderAmount(amt)}
                 className="px-5 py-2 rounded-full bg-white/60 border hover:bg-green-100 hover:border-green-400 transition text-sm font-medium"
               >
                 ₹{amt}
@@ -213,7 +219,7 @@ export default function POSPage({ refreshTransactions }) {
           <div className="space-y-3 text-gray-700">
             <div className="flex justify-between">
               <span>Bill Amount</span>
-              <span>₹{amount || "0.00"}</span>
+              <span>₹{orderAmount || "0.00"}</span>
             </div>
 
             <div className="flex justify-between">
@@ -225,7 +231,7 @@ export default function POSPage({ refreshTransactions }) {
 
             <div className="flex justify-between text-lg font-bold">
               <span>Total Payable</span>
-              <span>₹{finalAmount ?? amount ?? "0.00"}</span>
+              <span>₹{finalAmount ?? orderAmount ?? "0.00"}</span>
             </div>
           </div>
 

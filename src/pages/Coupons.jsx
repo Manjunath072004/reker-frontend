@@ -1,9 +1,10 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { verifyCoupon } from "../api/coupons";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { OrderContext } from "../context/OrderContext";
 
 /* ---------- PHONE VALIDATION ---------- */
 const isValidIndianPhone = (phone) => /^[6-9]\d{9}$/.test(phone);
@@ -17,29 +18,46 @@ const calculateCouponDiscount = (coupon, amount) => {
   }
 
   const percentDiscount = (amount * coupon.discount_value) / 100;
-  return Math.min(percentDiscount, coupon.max_discount_amount || percentDiscount);
+  return Math.min(
+    percentDiscount,
+    coupon.max_discount_amount || percentDiscount
+  );
 };
 
 export default function Coupons() {
   const { token } = useContext(AuthContext);
+  const { orderAmount } = useContext(OrderContext);
   const navigate = useNavigate();
-  const [showOthers, setShowOthers] = useState(false);
 
+  const [showOthers, setShowOthers] = useState(false);
   const [code, setCode] = useState("");
   const [coupon, setCoupon] = useState(null);
-
   const [phone, setPhone] = useState("");
-  const [orderAmount, setOrderAmount] = useState("");
+
   const [bestCoupon, setBestCoupon] = useState(null);
   const [otherCoupons, setOtherCoupons] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* ---------- VERIFY COUPON ---------- */
+  /* ---------- VALIDATE ORDER AMOUNT FROM POS ---------- */
+  useEffect(() => {
+    if (!orderAmount || Number(orderAmount) <= 0) {
+      setError("Note: Please enter order amount in POS before applying coupons");
+    } else {
+      setError("");
+    }
+  }, [orderAmount]);
+
+  /* ---------- VERIFY MANUAL COUPON ---------- */
   const handleVerify = async () => {
     if (!code.trim()) {
       setError("Please enter a coupon code");
+      return;
+    }
+
+    if (!orderAmount || Number(orderAmount) <= 0) {
+      setError("Order amount missing. Please enter amount in POS.");
       return;
     }
 
@@ -71,8 +89,8 @@ export default function Coupons() {
       setError("Enter valid 10-digit Indian phone number");
       return;
     }
-    if (!orderAmount || isNaN(orderAmount) || Number(orderAmount) <= 0) {
-      setError("Enter a valid order amount");
+    if (!orderAmount || Number(orderAmount) <= 0) {
+      setError("Order amount missing. Please enter amount in POS.");
       return;
     }
 
@@ -81,23 +99,22 @@ export default function Coupons() {
     try {
       const res = await API.post(
         "/coupons/by-phone/",
-        { phone, order_amount: parseFloat(orderAmount) },
+        {
+          phone,
+          order_amount: Number(orderAmount),
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = res.data;
 
-      if (!data || data.length === 0) {
-        setError("No applicable coupons for this phone number and order amount");
+      if (!data?.best_coupon && (!data?.other_coupons || data.other_coupons.length === 0)) {
+        setError("No applicable coupons found");
         return;
       }
 
-      // Backend can optionally return best_coupon and other_coupons
-      const best = data.best_coupon || data[0];
-      const others = data.other_coupons || data.filter((c) => c.id !== best.id);
-
-      setBestCoupon(best);
-      setOtherCoupons(others);
+      setBestCoupon(data.best_coupon || null);
+      setOtherCoupons(data.other_coupons || []);
     } catch (err) {
       setError(err.response?.data?.error || "Unable to fetch coupons");
     } finally {
@@ -105,130 +122,148 @@ export default function Coupons() {
     }
   };
 
-  /* ---------- APPLY ---------- */
+  /* ---------- APPLY COUPON ---------- */
   const applyToPOS = (selectedCoupon) => {
-    navigate("/pos", { state: { coupon: selectedCoupon } });
+    navigate("/pos", {
+      state: { coupon: selectedCoupon },
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white px-8 py-12">
-      <div className="max-w-6xl mx-auto space-y-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50 px-6 py-10">
+      <div className="max-w-7xl mx-auto space-y-10">
 
         {/* HEADER */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Apply Discount Coupon</h1>
-          <p className="text-gray-500">Best coupon is automatically recommended</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Coupons</h1>
+            <p className="text-gray-500">
+              Apply best discounts for your order
+            </p>
+          </div>
+
+          {/* ORDER AMOUNT BADGE */}
+          <div className="bg-white shadow rounded-2xl px-6 py-4 text-center">
+            <p className="text-xs text-gray-400">Order Amount</p>
+            <p className="text-2xl font-bold text-emerald-600">
+              ₹{orderAmount || 0}
+            </p>
+          </div>
         </div>
 
         {/* ERROR */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">{error}</div>
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
+            {error}
+          </div>
         )}
 
-        {/* MANUAL COUPON */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold mb-4">Have a Coupon Code?</h2>
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-          <div className="flex gap-4">
-            <input
-              placeholder="Enter coupon code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="flex-1 p-4 rounded-xl border"
-            />
-            <button
-              onClick={handleVerify}
-              disabled={loading}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold"
-            >
-              Verify
-            </button>
-          </div>
+          {/* MANUAL COUPON */}
+          <div className="bg-white rounded-3xl shadow p-8">
+            <h2 className="text-xl font-semibold mb-6">Enter Coupon Code</h2>
 
-          {coupon && (
-            <div className="mt-6">
-              <CouponCard coupon={coupon} onApply={applyToPOS} orderAmount={orderAmount} />
-            </div>
-          )}
-        </div>
-
-        {/* ================= DIVIDER ================= */}
-        <div className="flex items-center gap-4">
-          <div className="flex-grow border-t border-gray-300" />
-          <span className="text-sm text-gray-500">OR</span>
-          <div className="flex-grow border-t border-gray-300" />
-        </div>
-
-        {/* PHONE COUPONS */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold mb-4">Find Coupons by Phone</h2>
-
-          <div className="flex gap-4 mb-4">
-            <input
-              placeholder="10-digit phone number"
-              value={phone}
-              maxLength={10}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              className="flex-1 p-4 rounded-xl border"
-            />
-            <input
-              placeholder="Order amount"
-              value={orderAmount}
-              onChange={(e) => setOrderAmount(e.target.value.replace(/[^\d.]/g, ""))}
-              className="flex-1 p-4 rounded-xl border"
-            />
-            <button
-              onClick={fetchCouponsByPhone}
-              disabled={loading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold"
-            >
-              {loading ? "Checking..." : "Check Coupons"}
-            </button>
-          </div>
-
-          {/* BEST COUPON */}
-          {bestCoupon && (
-            <div className="mb-6 border-2 border-green-500 bg-green-50 rounded-2xl p-5">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-green-700">⭐ Best Coupon</h3>
-                  <p className="text-sm text-gray-700">
-                    Save ₹{calculateCouponDiscount(bestCoupon, parseFloat(orderAmount))}
-                  </p>
-                </div>
-                <button
-                  onClick={() => applyToPOS(bestCoupon)}
-                  className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold"
-                >
-                  Apply Best
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* OTHER COUPONS TOGGLE */}
-          {otherCoupons.length > 0 && (
-            <div className="mt-6">
+            <div className="flex gap-3">
+              <input
+                placeholder="COUPON2025"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="flex-1 p-4 rounded-xl border focus:ring-2 focus:ring-emerald-400"
+              />
               <button
-                onClick={() => setShowOthers(!showOthers)}
-                className="w-full py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50"
+                onClick={handleVerify}
+                disabled={loading}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold"
               >
-                {showOthers ? "Hide Other Coupons" : `View Other Coupons (${otherCoupons.length})`}
+                Verify
               </button>
             </div>
-          )}
 
-          {showOthers && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
-            >
-              {otherCoupons.map((c) => (
-                <CouponCard key={c.id} coupon={c} onApply={applyToPOS} orderAmount={orderAmount} />
-              ))}
-            </motion.div>
-          )}
+            {coupon && (
+              <div className="mt-6">
+                <CouponCard
+                  coupon={coupon}
+                  orderAmount={orderAmount}
+                  onApply={applyToPOS}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* PHONE COUPONS */}
+          <div className="bg-white rounded-3xl shadow p-8">
+            <h2 className="text-xl font-semibold mb-6">
+              Coupons for Phone Number
+            </h2>
+
+            <div className="flex flex-col md:flex-row gap-3 mb-6">
+              <input
+                placeholder="10-digit phone"
+                value={phone}
+                maxLength={10}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                className="flex-1 p-4 rounded-xl border"
+              />
+
+              <button
+                onClick={fetchCouponsByPhone}
+                disabled={loading}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold"
+              >
+                {loading ? "Checking..." : "Find Coupons"}
+              </button>
+            </div>
+
+            {/* BEST COUPON */}
+            {bestCoupon && (
+              <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-2xl p-6 mb-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs opacity-80">Best Savings</p>
+                    <h3 className="text-xl font-bold">{bestCoupon.code}</h3>
+                    <p className="text-sm">
+                      Save ₹{calculateCouponDiscount(bestCoupon, orderAmount)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => applyToPOS(bestCoupon)}
+                    className="bg-white text-emerald-700 px-5 py-2 rounded-xl font-semibold"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OTHER COUPONS */}
+            {otherCoupons.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowOthers(!showOthers)}
+                  className="w-full py-3 border rounded-xl font-semibold"
+                >
+                  {showOthers
+                    ? "Hide Other Coupons"
+                    : `View Other Coupons (${otherCoupons.length})`}
+                </button>
+
+                {showOthers && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                    {otherCoupons.map((c) => (
+                      <CouponCard
+                        key={c.id}
+                        coupon={c}
+                        orderAmount={orderAmount}
+                        onApply={applyToPOS}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -236,9 +271,9 @@ export default function Coupons() {
 }
 
 /* ---------- COUPON CARD ---------- */
-function CouponCard({ coupon, onApply, orderAmount }) {
+function CouponCard({ coupon, orderAmount, onApply }) {
   return (
-    <motion.div whileHover={{ scale: 1.02 }} className="rounded-2xl border bg-white shadow-lg p-6">
+    <motion.div whileHover={{ scale: 1.02 }} className="rounded-2xl border p-6">
       <div className="text-sm font-bold text-emerald-600 mb-2">
         {coupon.discount_type === "percent"
           ? `${coupon.discount_value}% OFF`
@@ -246,11 +281,9 @@ function CouponCard({ coupon, onApply, orderAmount }) {
       </div>
 
       <h3 className="text-lg font-bold">{coupon.code}</h3>
-
       <p className="text-sm text-gray-600">Min Order: ₹{coupon.min_order_amount}</p>
-
       <p className="text-sm text-green-600 font-semibold">
-        Save ₹{calculateCouponDiscount(coupon, parseFloat(orderAmount))}
+        Save ₹{calculateCouponDiscount(coupon, orderAmount)}
       </p>
 
       <button

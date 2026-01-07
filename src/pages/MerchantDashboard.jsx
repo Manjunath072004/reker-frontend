@@ -4,6 +4,10 @@ import { AuthContext } from "../context/AuthContext";
 import rekerPayLogo from "../assets/Reker-logo.png";
 import { useNavigate, Link } from "react-router-dom";
 import { fetchUnreadCount } from "../api/notifications";
+import { connectSocket, disconnectSocket } from "../realtime/socket";
+import { useRef } from "react";
+
+
 
 /* Lucide Icons */
 import {
@@ -22,6 +26,8 @@ import AnalyticsView from "../components/AnalyticsView";
 import SettingsView from "../components/SettingsView";
 
 export default function MerchantDashboard() {
+  const socketStarted = useRef(false);
+
   const { token, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -83,11 +89,45 @@ export default function MerchantDashboard() {
     });
   };
 
+  // useEffect(() => {
+  //   fetchTransactions();
+  //   const i = setInterval(fetchTransactions, 5000);
+  //   return () => clearInterval(i);
+  // }, [token]);
+
   useEffect(() => {
+    if (!token) return;
     fetchTransactions();
-    const i = setInterval(fetchTransactions, 5000);
-    return () => clearInterval(i);
   }, [token]);
+
+  useEffect(() => {
+    if (!merchant || socketStarted.current) return;
+
+    socketStarted.current = true;
+
+    connectSocket({
+      userId: merchant.user,
+      merchantId: merchant.id,
+
+      onPayment: () => {
+        fetchTransactions();
+        API.get("/analytics/kpis/").then(res => setKpis(res.data));
+      },
+
+      onNotification: () => {
+        fetchUnreadCount().then(res =>
+          setCount(res.data.unread_count)
+        );
+      },
+    });
+
+    return () => {
+      disconnectSocket();
+      socketStarted.current = false;
+    };
+  }, [merchant]);
+
+
 
   /* ---------------- FILTER ---------------- */
   const filteredTransactions = useMemo(() => {
@@ -129,9 +169,9 @@ export default function MerchantDashboard() {
   const menuClass = (k) =>
     `flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
      ${active === k
-        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-[1.03]"
-        : "text-gray-600 hover:bg-green-50 hover:scale-[1.02]"
-     }`;
+      ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-[1.03]"
+      : "text-gray-600 hover:bg-green-50 hover:scale-[1.02]"
+    }`;
 
   /* ---------------- UI ---------------- */
   return (

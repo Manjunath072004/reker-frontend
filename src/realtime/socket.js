@@ -1,42 +1,56 @@
 let socket = null;
 
-export const connectSocket = ({ onPayment, onNotification }) => {
-    const token = localStorage.getItem("access");
-    if (!token) return;
+export const connectSocket = ({
+  userId,
+  merchantId,
+  onPayment,
+  onNotification,
+}) => {
+  // prevent duplicate connections
+  if (socket) {
+    socket.close();
+    socket = null;
+  }
 
-    const socket = new WebSocket(
-        `ws://127.0.0.1:8000/ws/realtime/?token=${localStorage.getItem("access")}`
-    );
+  if (!userId && !merchantId) {
+    console.warn("Realtime socket not started: missing IDs");
+    return;
+  }
 
-    socket.onopen = () => {
-        console.log(" Realtime socket connected");
-    };
+  const url = `ws://127.0.0.1:8000/ws/realtime/?user=${userId}&merchant=${merchantId}`;
 
-    socket.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        console.log(" REALTIME:", data);
+  socket = new WebSocket(url);
 
-        if (data.type === "PAYMENT_UPDATE" && onPayment) {
-            onPayment(data);
-        }
+  socket.onopen = () => {
+    console.log("✅ Realtime socket connected");
+  };
 
-        if (data.type === "NEW_NOTIFICATION" && onNotification) {
-            onNotification(data);
-        }
-    };
+  socket.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    console.log("⚡ REALTIME EVENT:", data);
 
-    socket.onclose = () => {
-        console.log(" Realtime socket disconnected");
-    };
+    if (data.type === "PAYMENT_UPDATE") {
+      onPayment?.(data);
+    }
 
-    socket.onerror = (err) => {
-        console.error("Socket error", err);
-    };
+    if (data.type === "NEW_NOTIFICATION") {
+      onNotification?.(data);
+    }
+  };
+
+  socket.onclose = () => {
+    console.log("❌ Realtime socket disconnected");
+    socket = null;
+  };
+
+  socket.onerror = (err) => {
+    console.error("🔥 Realtime socket error", err);
+  };
 };
 
 export const disconnectSocket = () => {
-    if (socket) {
-        socket.close();
-        socket = null;
-    }
+  if (socket) {
+    socket.close();
+    socket = null;
+  }
 };

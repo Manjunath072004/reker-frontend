@@ -5,10 +5,14 @@ import { createPayment, verifyPayment } from "../api/payments";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createTransaction } from "../api/transactions";
 import { OrderContext } from "../context/OrderContext";
+import { connectSocket, disconnectSocket } from "../realtime/socket";
 
 export default function POSPage({ refreshTransactions }) {
   const { token } = useContext(AuthContext);
   const { orderAmount, setOrderAmount } = useContext(OrderContext);
+
+  const [merchantId, setMerchantId] = useState(null);
+
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,6 +62,29 @@ export default function POSPage({ refreshTransactions }) {
     setFinalAmount(amt - d);
   }, [coupon, orderAmount]);
 
+  useEffect(() => {
+    if (!paymentId || !merchantId) return;
+
+    connectSocket({
+      merchantId,
+      onPayment: (data) => {
+        if (data.payment_id === paymentId) {
+          setPaymentStatus(
+            data.status === "SUCCESS" ? "success" : "failed"
+          );
+          refreshTransactions?.();
+
+          if (data.status === "SUCCESS") {
+            disconnectSocket();
+          }
+        }
+      },
+    });
+
+    return () => disconnectSocket();
+  }, [paymentId, merchantId]);
+
+
   /* ---------------- QR TIMER ---------------- */
   useEffect(() => {
     if (!qrCreated || paymentStatus !== "waiting") return;
@@ -94,13 +121,17 @@ export default function POSPage({ refreshTransactions }) {
       );
 
       const paymentId = res.payment.id;
+      const merchantId = res.payment.merchant; // or res.payment.merchant_id
+
+      setPaymentId(paymentId);
+      setMerchantId(merchantId);
 
       await createTransaction(paymentId);
 
-      setPaymentId(paymentId);
       setQrCreated(true);
       setQrExpired(false);
       setPaymentStatus("waiting");
+
 
       setTimeout(() => confirmPayment(paymentId), 4000);
     } catch {

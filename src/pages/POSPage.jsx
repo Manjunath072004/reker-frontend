@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
-import { createPayment, verifyPayment } from "../api/payments";
+import { createPayment, verifyPayment, scanPayment } from "../api/payments";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createTransaction } from "../api/transactions";
 import { OrderContext } from "../context/OrderContext";
@@ -68,15 +68,20 @@ export default function POSPage({ refreshTransactions }) {
     connectSocket({
       merchantId,
       onPayment: (data) => {
-        if (data.payment_id === paymentId) {
-          setPaymentStatus(
-            data.status === "SUCCESS" ? "success" : "failed"
-          );
-          refreshTransactions?.();
+        if (data.payment_id !== paymentId) return;
 
-          if (data.status === "SUCCESS") {
-            disconnectSocket();
-          }
+        if (data.status === "SCANNED") {
+          setPaymentStatus("scanned");
+        }
+
+        if (data.status === "SUCCESS") {
+          setPaymentStatus("success");
+          refreshTransactions?.();
+          disconnectSocket();
+        }
+
+        if (data.status === "FAILED") {
+          setPaymentStatus("failed");
         }
       },
     });
@@ -132,8 +137,16 @@ export default function POSPage({ refreshTransactions }) {
       setQrExpired(false);
       setPaymentStatus("waiting");
 
+      //  DUMMY QR SCAN
+      setTimeout(() => {
+        scanPayment(paymentId);
+      }, 2000);
 
-      setTimeout(() => confirmPayment(paymentId), 4000);
+      //  DUMMY PAYMENT SUCCESS
+      setTimeout(() => {
+        confirmPayment(paymentId);
+      }, 4000);
+
     } catch {
       alert("Payment initiation failed");
     }
@@ -273,12 +286,15 @@ export default function POSPage({ refreshTransactions }) {
               <span className={
                 paymentStatus === "waiting"
                   ? "text-yellow-600"
-                  : paymentStatus === "success"
-                    ? "text-green-600"
-                    : "text-gray-500"
+                  : paymentStatus === "scanned"
+                    ? "text-blue-600"
+                    : paymentStatus === "success"
+                      ? "text-green-600"
+                      : "text-gray-500"
               }>
                 {paymentStatus === "idle" && "Not started"}
                 {paymentStatus === "waiting" && "Awaiting payment"}
+                {paymentStatus === "scanned" && "QR Scanned"}
                 {paymentStatus === "success" && "Completed"}
               </span>
             </div>
@@ -367,6 +383,12 @@ export default function POSPage({ refreshTransactions }) {
             {paymentStatus === "waiting" && !qrExpired && (
               <p className="text-yellow-600 font-semibold">
                 Waiting for customer to complete payment…
+              </p>
+            )}
+
+            {paymentStatus === "scanned" && (
+              <p className="text-blue-600 font-semibold">
+                QR Scanned – Waiting for payment…
               </p>
             )}
 

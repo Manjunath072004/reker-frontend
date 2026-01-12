@@ -13,3 +13,9 @@ export const verifyPayment = async (paymentId, status, token) => {
   });
   return res.data;
 };
+
+
+export const scanPayment = async (paymentId) => {
+  const res = await API.post(`/payments/scan/${paymentId}/`);
+  return res.data;
+};

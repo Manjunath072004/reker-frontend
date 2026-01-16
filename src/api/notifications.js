@@ -8,3 +8,6 @@ export const markNotificationRead = (id) =>
 
 export const fetchUnreadCount = () =>
   axios.get("/notifications/unread-count/");
+
+export const markAllNotificationsRead = () =>
+  axios.post("/notifications/read-all/");

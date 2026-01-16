@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import {
   fetchNotifications,
-  markNotificationRead
+  markNotificationRead,
+  markAllNotificationsRead
 } from "../api/notifications";
 
 /* ---------- ICON MAP ---------- */
@@ -40,9 +41,15 @@ export default function NotificationsPage() {
     }
   };
 
-  /* ---------- MARK READ ---------- */
+  /* ---------- MARK SINGLE ---------- */
   const handleRead = async (id) => {
     await markNotificationRead(id);
+    loadNotifications();
+  };
+
+  /* ---------- MARK ALL ---------- */
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
     loadNotifications();
   };
 
@@ -57,16 +64,34 @@ export default function NotificationsPage() {
     <div className="min-h-screen px-6 py-10 bg-gradient-to-br from-green-50 to-white">
 
       {/* ================= HEADER ================= */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3">
-          <Bell className="text-green-600" size={28} />
-          <h2 className="text-3xl font-bold tracking-tight">
-            Notifications
-          </h2>
+      <div className="mb-10 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <Bell className="text-green-600" size={28} />
+            <h2 className="text-3xl font-bold tracking-tight">
+              Notifications
+            </h2>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            System alerts, payment updates & account activity
+          </p>
         </div>
-        <p className="text-sm text-gray-500 mt-2">
-          System alerts, payment updates & account activity
-        </p>
+
+        {unread.length > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            disabled={loading}
+            className="
+              px-4 py-2 rounded-full text-sm font-medium
+              bg-green-600 text-white
+              hover:bg-green-700
+              disabled:opacity-50
+              transition
+            "
+          >
+            Mark all as read
+          </button>
+        )}
       </div>
 
       {/* ================= LOADING ================= */}
@@ -149,18 +174,15 @@ function NotificationCard({ notification, onRead, unread }) {
           : "bg-white/60 border-gray-200"}
       `}
     >
-      {/* LEFT ACCENT */}
       {unread && (
         <span className="absolute left-0 top-0 h-full w-1 bg-green-500 rounded-l-2xl" />
       )}
 
       <div className="flex gap-4 p-5">
-        {/* ICON */}
         <div className="mt-1">
           {typeIcon(notification.type)}
         </div>
 
-        {/* CONTENT */}
         <div className="flex-1">
           <h4 className="font-semibold text-gray-800">
             {notification.title}
@@ -173,7 +195,6 @@ function NotificationCard({ notification, onRead, unread }) {
           </p>
         </div>
 
-        {/* ACTION */}
         {!notification.is_read && (
           <button
             onClick={() => onRead(notification.id)}

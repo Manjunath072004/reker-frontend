@@ -7,6 +7,16 @@ import { createTransaction } from "../api/transactions";
 import { OrderContext } from "../context/OrderContext";
 import { connectSocket, disconnectSocket } from "../realtime/socket";
 
+const playSound = (src) => {
+  try {
+    const audio = new Audio(src);
+    audio.play();
+  } catch (e) {
+    console.warn("Sound play failed", e);
+  }
+};
+
+
 export default function POSPage({ refreshTransactions }) {
   const { token } = useContext(AuthContext);
   const { orderAmount, setOrderAmount } = useContext(OrderContext);
@@ -72,18 +82,36 @@ export default function POSPage({ refreshTransactions }) {
 
         if (data.status === "SCANNED") {
           setPaymentStatus("scanned");
+          playSound("/sounds/scan.mp3");
         }
 
+        // if (data.status === "SUCCESS") {
+        //   setPaymentStatus("success");
+        //   playSound("/sounds/success.mp3");
+        //   refreshTransactions?.();
+        //   disconnectSocket();
+        // }
+
         if (data.status === "SUCCESS") {
+          if (paymentStatus === "success") return;
+
           setPaymentStatus("success");
+          playSound("/sounds/success.mp3");
           refreshTransactions?.();
           disconnectSocket();
+
+          setTimeout(() => {
+            resetPOS();
+          }, 3000);
         }
+
 
         if (data.status === "FAILED") {
           setPaymentStatus("failed");
+          playSound("/sounds/failed.mp3");
         }
       },
+
     });
 
     return () => disconnectSocket();
@@ -152,17 +180,46 @@ export default function POSPage({ refreshTransactions }) {
     }
   };
 
+  // const confirmPayment = async (id) => {
+  //   await verifyPayment(id, "SUCCESS", token);
+  //   setPaymentStatus("success");
+  //   playSound("/sounds/success.mp3");
+  //   refreshTransactions?.();
+  // };
+
   const confirmPayment = async (id) => {
     await verifyPayment(id, "SUCCESS", token);
     setPaymentStatus("success");
+    playSound("/sounds/success.mp3");
     refreshTransactions?.();
+
+    setTimeout(() => {
+      resetPOS();
+    }, 3000);
   };
+
+
 
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  const resetPOS = () => {
+    setPaymentId(null);
+    setMerchantId(null);
+    setQrCreated(false);
+    setQrExpired(false);
+    setPaymentStatus("idle");
+    setTimeLeft(QR_TIME);
+
+    setCoupon(null);
+    setDiscount(0);
+    setFinalAmount(null);
+    setOrderAmount("");
+  };
+
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-green-50 to-white px-8 py-12 overflow-hidden">

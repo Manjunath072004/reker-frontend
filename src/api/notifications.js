@@ -14,3 +14,6 @@ export const markAllNotificationsRead = () =>
 
 export const deleteNotificationsBulk = (ids) =>
   axios.post("/notifications/delete-bulk/", { ids });
+
+export const archiveNotificationsBulk = (ids) =>
+  axios.post("/notifications/archive/", { ids });

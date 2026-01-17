@@ -5,13 +5,15 @@ import {
   CheckCircle,
   Info,
   AlertTriangle,
-  Trash2
+  Trash2,
+  Archive
 } from "lucide-react";
 import {
   fetchNotifications,
   markNotificationRead,
   markAllNotificationsRead,
-  deleteNotificationsBulk
+  deleteNotificationsBulk,
+  archiveNotificationsBulk
 } from "../api/notifications";
 
 /* ---------- ICON MAP ---------- */
@@ -44,13 +46,16 @@ export default function NotificationsPage() {
     }
   };
 
-  /* ---------- SINGLE READ ---------- */
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  /* ---------- READ ---------- */
   const handleRead = async (id) => {
     await markNotificationRead(id);
     loadNotifications();
   };
 
-  /* ---------- MARK ALL READ ---------- */
   const handleMarkAllRead = async () => {
     await markAllNotificationsRead();
     loadNotifications();
@@ -73,17 +78,20 @@ export default function NotificationsPage() {
     }
   };
 
-  /* ---------- BULK DELETE ---------- */
+  /* ---------- BULK ACTIONS ---------- */
   const handleDeleteSelected = async () => {
-    if (selected.length === 0) return;
+    if (!selected.length) return;
     await deleteNotificationsBulk(selected);
     setSelected([]);
     loadNotifications();
   };
 
-  useEffect(() => {
+  const handleArchiveSelected = async () => {
+    if (!selected.length) return;
+    await archiveNotificationsBulk(selected);
+    setSelected([]);
     loadNotifications();
-  }, []);
+  };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -102,7 +110,7 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={toggleSelectAll}
             className="px-4 py-2 rounded-full border text-sm"
@@ -113,13 +121,25 @@ export default function NotificationsPage() {
           </button>
 
           {selected.length > 0 && (
-            <button
-              onClick={handleDeleteSelected}
-              className="px-4 py-2 rounded-full bg-red-600 text-white text-sm flex items-center gap-2"
-            >
-              <Trash2 size={16} />
-              Delete ({selected.length})
-            </button>
+            <>
+              {/* ARCHIVE */}
+              <button
+                onClick={handleArchiveSelected}
+                className="px-4 py-2 rounded-full bg-yellow-500 text-white text-sm flex items-center gap-2"
+              >
+                <Archive size={16} />
+                Archive ({selected.length})
+              </button>
+
+              {/* DELETE */}
+              <button
+                onClick={handleDeleteSelected}
+                className="px-4 py-2 rounded-full bg-red-600 text-white text-sm flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete ({selected.length})
+              </button>
+            </>
           )}
 
           {unreadCount > 0 && (
@@ -168,12 +188,7 @@ export default function NotificationsPage() {
 
 /* ================= CARD ================= */
 
-function NotificationCard({
-  notification,
-  selected,
-  onSelect,
-  onRead
-}) {
+function NotificationCard({ notification, selected, onSelect, onRead }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -186,7 +201,7 @@ function NotificationCard({
       `}
     >
       <div className="flex gap-4 p-5">
-        {/* CHECKBOX ALWAYS VISIBLE */}
+        {/* CHECKBOX */}
         <input
           type="checkbox"
           checked={selected}
@@ -194,10 +209,12 @@ function NotificationCard({
           className="mt-1 accent-green-600"
         />
 
+        {/* ICON */}
         <div className="mt-1">
           {typeIcon(notification.type)}
         </div>
 
+        {/* CONTENT */}
         <div className="flex-1">
           <h4 className="font-semibold">{notification.title}</h4>
           <p className="text-sm text-gray-600">{notification.message}</p>
@@ -206,6 +223,7 @@ function NotificationCard({
           </p>
         </div>
 
+        {/* ACTION */}
         {!notification.is_read && (
           <button
             onClick={() => onRead(notification.id)}

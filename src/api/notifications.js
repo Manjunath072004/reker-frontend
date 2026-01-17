@@ -11,3 +11,6 @@ export const fetchUnreadCount = () =>
 
 export const markAllNotificationsRead = () =>
   axios.post("/notifications/read-all/");
+
+export const deleteNotificationsBulk = (ids) =>
+  axios.post("/notifications/delete-bulk/", { ids });

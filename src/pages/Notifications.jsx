@@ -4,12 +4,14 @@ import {
   Bell,
   CheckCircle,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
 import {
   fetchNotifications,
   markNotificationRead,
-  markAllNotificationsRead
+  markAllNotificationsRead,
+  deleteNotificationsBulk
 } from "../api/notifications";
 
 /* ---------- ICON MAP ---------- */
@@ -26,6 +28,7 @@ const typeIcon = (type) => {
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
+  const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
 
   /* ---------- FETCH ---------- */
@@ -41,15 +44,40 @@ export default function NotificationsPage() {
     }
   };
 
-  /* ---------- MARK SINGLE ---------- */
+  /* ---------- SINGLE READ ---------- */
   const handleRead = async (id) => {
     await markNotificationRead(id);
     loadNotifications();
   };
 
-  /* ---------- MARK ALL ---------- */
+  /* ---------- MARK ALL READ ---------- */
   const handleMarkAllRead = async () => {
     await markAllNotificationsRead();
+    loadNotifications();
+  };
+
+  /* ---------- SELECTION ---------- */
+  const toggleSelect = (id) => {
+    setSelected(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.length === notifications.length) {
+      setSelected([]);
+    } else {
+      setSelected(notifications.map(n => n.id));
+    }
+  };
+
+  /* ---------- BULK DELETE ---------- */
+  const handleDeleteSelected = async () => {
+    if (selected.length === 0) return;
+    await deleteNotificationsBulk(selected);
+    setSelected([]);
     loadNotifications();
   };
 
@@ -57,8 +85,7 @@ export default function NotificationsPage() {
     loadNotifications();
   }, []);
 
-  const unread = notifications.filter(n => !n.is_read);
-  const read = notifications.filter(n => n.is_read);
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <div className="min-h-screen px-6 py-10 bg-gradient-to-br from-green-50 to-white">
@@ -68,40 +95,49 @@ export default function NotificationsPage() {
         <div>
           <div className="flex items-center gap-3">
             <Bell className="text-green-600" size={28} />
-            <h2 className="text-3xl font-bold tracking-tight">
-              Notifications
-            </h2>
+            <h2 className="text-3xl font-bold">Notifications</h2>
           </div>
           <p className="text-sm text-gray-500 mt-2">
             System alerts, payment updates & account activity
           </p>
         </div>
 
-        {unread.length > 0 && (
+        <div className="flex gap-3">
           <button
-            onClick={handleMarkAllRead}
-            disabled={loading}
-            className="
-              px-4 py-2 rounded-full text-sm font-medium
-              bg-green-600 text-white
-              hover:bg-green-700
-              disabled:opacity-50
-              transition
-            "
+            onClick={toggleSelectAll}
+            className="px-4 py-2 rounded-full border text-sm"
           >
-            Mark all as read
+            {selected.length === notifications.length
+              ? "Unselect all"
+              : "Select all"}
           </button>
-        )}
+
+          {selected.length > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              className="px-4 py-2 rounded-full bg-red-600 text-white text-sm flex items-center gap-2"
+            >
+              <Trash2 size={16} />
+              Delete ({selected.length})
+            </button>
+          )}
+
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="px-4 py-2 rounded-full bg-green-600 text-white text-sm"
+            >
+              Mark all read
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ================= LOADING ================= */}
       {loading && (
         <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-20 rounded-2xl bg-white/60 backdrop-blur border"
-            />
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 rounded-2xl bg-white/60 border" />
           ))}
         </div>
       )}
@@ -114,83 +150,58 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* ================= UNREAD ================= */}
-      {unread.length > 0 && (
-        <section className="mb-10">
-          <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-            Unread
-          </h3>
-
-          <AnimatePresence>
-            {unread.map((n) => (
-              <NotificationCard
-                key={n.id}
-                notification={n}
-                onRead={handleRead}
-                unread
-              />
-            ))}
-          </AnimatePresence>
-        </section>
-      )}
-
-      {/* ================= READ ================= */}
-      {read.length > 0 && (
-        <section>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-            Earlier
-          </h3>
-
-          <AnimatePresence>
-            {read.map((n) => (
-              <NotificationCard
-                key={n.id}
-                notification={n}
-                onRead={handleRead}
-              />
-            ))}
-          </AnimatePresence>
-        </section>
-      )}
+      {/* ================= LIST ================= */}
+      <AnimatePresence>
+        {notifications.map(n => (
+          <NotificationCard
+            key={n.id}
+            notification={n}
+            selected={selected.includes(n.id)}
+            onSelect={toggleSelect}
+            onRead={handleRead}
+          />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
 
 /* ================= CARD ================= */
 
-function NotificationCard({ notification, onRead, unread }) {
+function NotificationCard({
+  notification,
+  selected,
+  onSelect,
+  onRead
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.25 }}
-      className={`
-        relative mb-4 rounded-2xl border
-        backdrop-blur-xl shadow-lg
-        transition-all
-        ${unread
-          ? "bg-white/90 border-green-400"
-          : "bg-white/60 border-gray-200"}
+      className={`relative mb-4 rounded-2xl border shadow-lg
+        ${notification.is_read
+          ? "bg-white/60 border-gray-200"
+          : "bg-white border-green-400"}
       `}
     >
-      {unread && (
-        <span className="absolute left-0 top-0 h-full w-1 bg-green-500 rounded-l-2xl" />
-      )}
-
       <div className="flex gap-4 p-5">
+        {/* CHECKBOX ALWAYS VISIBLE */}
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onSelect(notification.id)}
+          className="mt-1 accent-green-600"
+        />
+
         <div className="mt-1">
           {typeIcon(notification.type)}
         </div>
 
         <div className="flex-1">
-          <h4 className="font-semibold text-gray-800">
-            {notification.title}
-          </h4>
-          <p className="text-sm text-gray-600 mt-1">
-            {notification.message}
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
+          <h4 className="font-semibold">{notification.title}</h4>
+          <p className="text-sm text-gray-600">{notification.message}</p>
+          <p className="text-xs text-gray-400 mt-1">
             {new Date(notification.created_at).toLocaleString()}
           </p>
         </div>
@@ -198,7 +209,7 @@ function NotificationCard({ notification, onRead, unread }) {
         {!notification.is_read && (
           <button
             onClick={() => onRead(notification.id)}
-            className="text-green-600 text-sm font-medium hover:underline"
+            className="text-green-600 text-sm hover:underline"
           >
             Mark read
           </button>

@@ -17,3 +17,10 @@ export const deleteNotificationsBulk = (ids) =>
 
 export const archiveNotificationsBulk = (ids) =>
   axios.post("/notifications/archive/", { ids });
+
+
+export const fetchArchivedNotifications = () =>
+  axios.get("/notifications/archived/");
+
+export const restoreNotificationsBulk = (ids) =>
+  axios.post("/notifications/restore/", { ids });

@@ -10,11 +10,14 @@ import {
 } from "lucide-react";
 import {
   fetchNotifications,
+  fetchArchivedNotifications,
   markNotificationRead,
   markAllNotificationsRead,
   deleteNotificationsBulk,
-  archiveNotificationsBulk
+  archiveNotificationsBulk,
+  restoreNotificationsBulk
 } from "../api/notifications";
+
 
 /* ---------- ICON MAP ---------- */
 const typeIcon = (type) => {
@@ -29,18 +32,22 @@ const typeIcon = (type) => {
 };
 
 export default function NotificationsPage() {
+  const [tab, setTab] = useState("inbox"); // inbox | archived
   const [notifications, setNotifications] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
 
   /* ---------- FETCH ---------- */
   const loadNotifications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetchNotifications();
+      const res =
+        tab === "archived"
+          ? await fetchArchivedNotifications()
+          : await fetchNotifications();
+
       setNotifications(res.data || []);
-    } catch (err) {
-      console.error(err);
+      setSelected([]);
     } finally {
       setLoading(false);
     }
@@ -48,7 +55,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [tab]);
 
   /* ---------- READ ---------- */
   const handleRead = async (id) => {
@@ -63,10 +70,8 @@ export default function NotificationsPage() {
 
   /* ---------- SELECTION ---------- */
   const toggleSelect = (id) => {
-    setSelected(prev =>
-      prev.includes(id)
-        ? prev.filter(x => x !== id)
-        : [...prev, id]
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
@@ -74,7 +79,7 @@ export default function NotificationsPage() {
     if (selected.length === notifications.length) {
       setSelected([]);
     } else {
-      setSelected(notifications.map(n => n.id));
+      setSelected(notifications.map((n) => n.id));
     }
   };
 
@@ -82,47 +87,73 @@ export default function NotificationsPage() {
   const handleDeleteSelected = async () => {
     if (!selected.length) return;
     await deleteNotificationsBulk(selected);
-    setSelected([]);
     loadNotifications();
   };
 
   const handleArchiveSelected = async () => {
     if (!selected.length) return;
     await archiveNotificationsBulk(selected);
-    setSelected([]);
     loadNotifications();
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const handleRestoreSelected = async () => {
+    if (!selected.length) return;
+    await restoreNotificationsBulk(selected);
+    loadNotifications();
+  };
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div className="min-h-screen px-6 py-10 bg-gradient-to-br from-green-50 to-white">
 
       {/* ================= HEADER ================= */}
-      <div className="mb-10 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <Bell className="text-green-600" size={28} />
             <h2 className="text-3xl font-bold">Notifications</h2>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-gray-500 mt-1">
             System alerts, payment updates & account activity
           </p>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
+        {/* TABS */}
+        <div className="flex gap-2">
           <button
-            onClick={toggleSelectAll}
-            className="px-4 py-2 rounded-full border text-sm"
+            onClick={() => setTab("inbox")}
+            className={`px-4 py-2 rounded-full text-sm ${
+              tab === "inbox" ? "bg-green-600 text-white" : "border"
+            }`}
           >
-            {selected.length === notifications.length
-              ? "Unselect all"
-              : "Select all"}
+            Inbox
           </button>
+          <button
+            onClick={() => setTab("archived")}
+            className={`px-4 py-2 rounded-full text-sm ${
+              tab === "archived" ? "bg-gray-800 text-white" : "border"
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+      </div>
 
-          {selected.length > 0 && (
-            <>
-              {/* ARCHIVE */}
+      {/* ================= ACTION BAR ================= */}
+      <div className="mb-6 flex flex-wrap gap-3">
+        <button
+          onClick={toggleSelectAll}
+          className="px-4 py-2 rounded-full border text-sm"
+        >
+          {selected.length === notifications.length
+            ? "Unselect all"
+            : "Select all"}
+        </button>
+
+        {selected.length > 0 && (
+          <>
+            {tab === "inbox" && (
               <button
                 onClick={handleArchiveSelected}
                 className="px-4 py-2 rounded-full bg-yellow-500 text-white text-sm flex items-center gap-2"
@@ -130,33 +161,42 @@ export default function NotificationsPage() {
                 <Archive size={16} />
                 Archive ({selected.length})
               </button>
+            )}
 
-              {/* DELETE */}
+            {tab === "archived" && (
               <button
-                onClick={handleDeleteSelected}
-                className="px-4 py-2 rounded-full bg-red-600 text-white text-sm flex items-center gap-2"
+                onClick={handleRestoreSelected}
+                className="px-4 py-2 rounded-full bg-blue-600 text-white text-sm flex items-center gap-2"
               >
-                <Trash2 size={16} />
-                Delete ({selected.length})
+                <RotateCcw size={16} />
+                Restore ({selected.length})
               </button>
-            </>
-          )}
+            )}
 
-          {unreadCount > 0 && (
             <button
-              onClick={handleMarkAllRead}
-              className="px-4 py-2 rounded-full bg-green-600 text-white text-sm"
+              onClick={handleDeleteSelected}
+              className="px-4 py-2 rounded-full bg-red-600 text-white text-sm flex items-center gap-2"
             >
-              Mark all read
+              <Trash2 size={16} />
+              Delete ({selected.length})
             </button>
-          )}
-        </div>
+          </>
+        )}
+
+        {tab === "inbox" && unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="px-4 py-2 rounded-full bg-green-600 text-white text-sm"
+          >
+            Mark all read
+          </button>
+        )}
       </div>
 
       {/* ================= LOADING ================= */}
       {loading && (
         <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="h-20 rounded-2xl bg-white/60 border" />
           ))}
         </div>
@@ -166,19 +206,20 @@ export default function NotificationsPage() {
       {!loading && notifications.length === 0 && (
         <div className="text-center py-20 text-gray-400">
           <Bell size={40} className="mx-auto mb-4 opacity-40" />
-          <p>No notifications yet</p>
+          <p>No notifications</p>
         </div>
       )}
 
       {/* ================= LIST ================= */}
       <AnimatePresence>
-        {notifications.map(n => (
+        {notifications.map((n) => (
           <NotificationCard
             key={n.id}
             notification={n}
             selected={selected.includes(n.id)}
             onSelect={toggleSelect}
             onRead={handleRead}
+            showReadAction={tab === "inbox"}
           />
         ))}
       </AnimatePresence>
@@ -188,20 +229,27 @@ export default function NotificationsPage() {
 
 /* ================= CARD ================= */
 
-function NotificationCard({ notification, selected, onSelect, onRead }) {
+function NotificationCard({
+  notification,
+  selected,
+  onSelect,
+  onRead,
+  showReadAction
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className={`relative mb-4 rounded-2xl border shadow-lg
-        ${notification.is_read
-          ? "bg-white/60 border-gray-200"
-          : "bg-white border-green-400"}
+      className={`mb-4 rounded-2xl border shadow-lg
+        ${
+          notification.is_read
+            ? "bg-white/60 border-gray-200"
+            : "bg-white border-green-400"
+        }
       `}
     >
       <div className="flex gap-4 p-5">
-        {/* CHECKBOX */}
         <input
           type="checkbox"
           checked={selected}
@@ -209,12 +257,8 @@ function NotificationCard({ notification, selected, onSelect, onRead }) {
           className="mt-1 accent-green-600"
         />
 
-        {/* ICON */}
-        <div className="mt-1">
-          {typeIcon(notification.type)}
-        </div>
+        <div className="mt-1">{typeIcon(notification.type)}</div>
 
-        {/* CONTENT */}
         <div className="flex-1">
           <h4 className="font-semibold">{notification.title}</h4>
           <p className="text-sm text-gray-600">{notification.message}</p>
@@ -223,8 +267,7 @@ function NotificationCard({ notification, selected, onSelect, onRead }) {
           </p>
         </div>
 
-        {/* ACTION */}
-        {!notification.is_read && (
+        {showReadAction && !notification.is_read && (
           <button
             onClick={() => onRead(notification.id)}
             className="text-green-600 text-sm hover:underline"

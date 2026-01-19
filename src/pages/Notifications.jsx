@@ -6,7 +6,8 @@ import {
   Info,
   AlertTriangle,
   Trash2,
-  Archive
+  Archive,
+  RotateCcw
 } from "lucide-react";
 import {
   fetchNotifications,
@@ -18,16 +19,17 @@ import {
   restoreNotificationsBulk
 } from "../api/notifications";
 
-
 /* ---------- ICON MAP ---------- */
 const typeIcon = (type) => {
   switch (type) {
-    case "SUCCESS":
+    case "PAYMENT":
       return <CheckCircle className="text-green-600" size={20} />;
-    case "WARNING":
+    case "SYSTEM":
       return <AlertTriangle className="text-yellow-600" size={20} />;
-    default:
+    case "COUPON":
       return <Info className="text-blue-600" size={20} />;
+    default:
+      return <Info className="text-gray-500" size={20} />;
   }
 };
 
@@ -36,6 +38,10 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  /* SEARCH + FILTER */
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("ALL");
 
   /* ---------- FETCH ---------- */
   const loadNotifications = async () => {
@@ -57,6 +63,23 @@ export default function NotificationsPage() {
     loadNotifications();
   }, [tab]);
 
+  /* RESET SELECTION ON FILTER CHANGE */
+  useEffect(() => {
+    setSelected([]);
+  }, [search, filterType]);
+
+  /* ---------- FILTERED DATA ---------- */
+  const filteredNotifications = notifications.filter((n) => {
+    const matchesSearch =
+      n.title.toLowerCase().includes(search.toLowerCase()) ||
+      n.message.toLowerCase().includes(search.toLowerCase());
+
+    const matchesType =
+      filterType === "ALL" || n.type === filterType;
+
+    return matchesSearch && matchesType;
+  });
+
   /* ---------- READ ---------- */
   const handleRead = async (id) => {
     await markNotificationRead(id);
@@ -76,10 +99,10 @@ export default function NotificationsPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selected.length === notifications.length) {
+    if (selected.length === filteredNotifications.length) {
       setSelected([]);
     } else {
-      setSelected(notifications.map((n) => n.id));
+      setSelected(filteredNotifications.map((n) => n.id));
     }
   };
 
@@ -108,7 +131,7 @@ export default function NotificationsPage() {
     <div className="min-h-screen px-6 py-10 bg-gradient-to-br from-green-50 to-white">
 
       {/* ================= HEADER ================= */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <Bell className="text-green-600" size={28} />
@@ -140,13 +163,40 @@ export default function NotificationsPage() {
         </div>
       </div>
 
+      {/* ================= SEARCH & FILTER ================= */}
+      <div className="mb-4 flex flex-wrap gap-4 items-center">
+        <input
+          type="text"
+          placeholder="Search notifications..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="px-4 py-2 rounded-xl border w-64 text-sm"
+        />
+
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          className="px-4 py-2 rounded-xl border text-sm"
+        >
+          <option value="ALL">All types</option>
+          <option value="PAYMENT">Payment</option>
+          <option value="SYSTEM">System</option>
+          <option value="COUPON">Coupon</option>
+          <option value="SETTLEMENT">Settlement</option>
+        </select>
+
+        <span className="text-sm text-gray-500">
+          Showing {filteredNotifications.length} of {notifications.length}
+        </span>
+      </div>
+
       {/* ================= ACTION BAR ================= */}
       <div className="mb-6 flex flex-wrap gap-3">
         <button
           onClick={toggleSelectAll}
           className="px-4 py-2 rounded-full border text-sm"
         >
-          {selected.length === notifications.length
+          {selected.length === filteredNotifications.length
             ? "Unselect all"
             : "Select all"}
         </button>
@@ -193,26 +243,9 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* ================= LOADING ================= */}
-      {loading && (
-        <div className="space-y-4 animate-pulse">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded-2xl bg-white/60 border" />
-          ))}
-        </div>
-      )}
-
-      {/* ================= EMPTY ================= */}
-      {!loading && notifications.length === 0 && (
-        <div className="text-center py-20 text-gray-400">
-          <Bell size={40} className="mx-auto mb-4 opacity-40" />
-          <p>No notifications</p>
-        </div>
-      )}
-
       {/* ================= LIST ================= */}
       <AnimatePresence>
-        {notifications.map((n) => (
+        {filteredNotifications.map((n) => (
           <NotificationCard
             key={n.id}
             notification={n}

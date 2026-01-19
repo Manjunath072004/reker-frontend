@@ -5,6 +5,7 @@ export const connectSocket = ({
   merchantId,
   onPayment,
   onNotification,
+  onKpi,
 }) => {
   // prevent duplicate connections
   if (socket) {
@@ -35,6 +36,10 @@ export const connectSocket = ({
 
     if (data.type === "NEW_NOTIFICATION") {
       onNotification?.(data);
+    }
+
+    if (data.type === "KPI_UPDATE") {
+      onKpi?.();
     }
   };
 

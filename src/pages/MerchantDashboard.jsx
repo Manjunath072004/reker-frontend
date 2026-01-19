@@ -60,12 +60,12 @@ export default function MerchantDashboard() {
   };
 
   /* ---------------- KPIs ---------------- */
-  useEffect(() => {
-    if (!token) return;
-    API.get("/analytics/kpis/", {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(res => setKpis(res.data));
-  }, [token]);
+  // useEffect(() => {
+  //   if (!token) return;
+  //   API.get("/analytics/kpis/", {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   }).then(res => setKpis(res.data));
+  // }, [token]);
 
   /* ---------------- MERCHANT ---------------- */
   useEffect(() => {
@@ -101,6 +101,16 @@ export default function MerchantDashboard() {
   }, [token]);
 
   useEffect(() => {
+    if (!merchant || !token) return;
+
+    API.get("/analytics/kpis/", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => setKpis(res.data));
+
+  }, [merchant]);
+
+
+  useEffect(() => {
     if (!merchant || socketStarted.current) return;
 
     socketStarted.current = true;
@@ -111,8 +121,18 @@ export default function MerchantDashboard() {
 
       onPayment: () => {
         fetchTransactions();
-        API.get("/analytics/kpis/").then(res => setKpis(res.data));
       },
+
+      onKpi: () => {
+        if (!token) return;
+
+        API.get("/analytics/kpis/", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(res => {
+          setKpis(res.data);
+        });
+      },
+
 
       onNotification: () => {
         fetchUnreadCount().then(res =>
@@ -120,6 +140,7 @@ export default function MerchantDashboard() {
         );
       },
     });
+
 
     return () => {
       disconnectSocket();

@@ -5,6 +5,8 @@ import { verifyCoupon } from "../api/coupons";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { OrderContext } from "../context/OrderContext";
+import { connectSocket, disconnectSocket } from "../realtime/socket";
+
 
 /* ---------- PHONE VALIDATION ---------- */
 const isValidIndianPhone = (phone) => /^[6-9]\d{9}$/.test(phone);
@@ -25,7 +27,7 @@ const calculateCouponDiscount = (coupon, amount) => {
 };
 
 export default function Coupons() {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const { orderAmount } = useContext(OrderContext);
   const navigate = useNavigate();
 
@@ -121,6 +123,24 @@ export default function Coupons() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    connectSocket({
+      userId: user.id,
+      onCoupon: (data) => {
+        console.log("Live coupon update:", data);
+
+        if (phone && orderAmount) {
+          fetchCouponsByPhone();
+        }
+      },
+    });
+
+    return () => disconnectSocket();
+  }, [user?.id, phone, orderAmount]);
+
 
   /* ---------- APPLY COUPON ---------- */
   const applyToPOS = (selectedCoupon) => {

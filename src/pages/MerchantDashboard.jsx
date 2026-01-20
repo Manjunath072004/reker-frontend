@@ -109,7 +109,6 @@ export default function MerchantDashboard() {
 
   }, [merchant]);
 
-
   useEffect(() => {
     if (!merchant || socketStarted.current) return;
 
@@ -119,21 +118,26 @@ export default function MerchantDashboard() {
       userId: merchant.user,
       merchantId: merchant.id,
 
+      //PAYMENT → refresh transactions → analytics auto updates
       onPayment: () => {
         fetchTransactions();
       },
 
+      //  SETTLEMENT → optional refresh
+      onSettlement: () => {
+        fetchTransactions();
+      },
+
+      //  KPI → refresh KPIs
       onKpi: () => {
         if (!token) return;
 
         API.get("/analytics/kpis/", {
           headers: { Authorization: `Bearer ${token}` },
-        }).then(res => {
-          setKpis(res.data);
-        });
+        }).then(res => setKpis(res.data));
       },
 
-
+      //  Notifications
       onNotification: () => {
         fetchUnreadCount().then(res =>
           setCount(res.data.unread_count)
@@ -141,13 +145,11 @@ export default function MerchantDashboard() {
       },
     });
 
-
     return () => {
       disconnectSocket();
       socketStarted.current = false;
     };
-  }, [merchant]);
-
+  }, [merchant, token]);
 
 
   /* ---------------- FILTER ---------------- */

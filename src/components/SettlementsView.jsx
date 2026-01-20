@@ -39,8 +39,8 @@ export default function SettlementsView() {
   useEffect(() => {
     if (!token) return;
     fetchSettlements();
-    const interval = setInterval(fetchSettlements, 5000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchSettlements, 5000);
+    // return () => clearInterval(interval);
   }, [token]);
 
   /* ---------- FILTER ---------- */

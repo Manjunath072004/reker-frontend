@@ -26,6 +26,21 @@ const calculateCouponDiscount = (coupon, amount) => {
   );
 };
 
+const getTimeLeft = (expiryDate) => {
+  const now = new Date().getTime();
+  const expiry = new Date(expiryDate).getTime();
+  const diff = expiry - now;
+
+  if (diff <= 0) return null;
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  return { hours, minutes, seconds };
+};
+
+
 export default function Coupons() {
   const { token, user } = useContext(AuthContext);
   const { orderAmount } = useContext(OrderContext);
@@ -292,8 +307,27 @@ export default function Coupons() {
 
 /* ---------- COUPON CARD ---------- */
 function CouponCard({ coupon, orderAmount, onApply }) {
+  const [timeLeft, setTimeLeft] = useState(
+    getTimeLeft(coupon.expiry_date)
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(getTimeLeft(coupon.expiry_date));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [coupon.expiry_date]);
+
+  const isExpired = !timeLeft;
+
   return (
-    <motion.div whileHover={{ scale: 1.02 }} className="rounded-2xl border p-6">
+    <motion.div
+      whileHover={{ scale: !isExpired ? 1.02 : 1 }}
+      className={`rounded-2xl border p-6 ${
+        isExpired ? "opacity-50 bg-gray-100" : ""
+      }`}
+    >
       <div className="text-sm font-bold text-emerald-600 mb-2">
         {coupon.discount_type === "percent"
           ? `${coupon.discount_value}% OFF`
@@ -301,17 +335,38 @@ function CouponCard({ coupon, orderAmount, onApply }) {
       </div>
 
       <h3 className="text-lg font-bold">{coupon.code}</h3>
-      <p className="text-sm text-gray-600">Min Order: ₹{coupon.min_order_amount}</p>
+
+      <p className="text-sm text-gray-600">
+        Min Order: ₹{coupon.min_order_amount}
+      </p>
+
       <p className="text-sm text-green-600 font-semibold">
         Save ₹{calculateCouponDiscount(coupon, orderAmount)}
       </p>
 
+      {/* ⏳ COUNTDOWN */}
+      {timeLeft ? (
+        <p className="mt-2 text-xs text-orange-600 font-semibold">
+          ⏳ Expires in {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-red-600 font-semibold">
+           Coupon Expired
+        </p>
+      )}
+
       <button
+        disabled={isExpired}
         onClick={() => onApply(coupon)}
-        className="mt-4 w-full py-2 bg-orange-500 text-white rounded-xl font-semibold"
+        className={`mt-4 w-full py-2 rounded-xl font-semibold ${
+          isExpired
+            ? "bg-gray-400 cursor-not-allowed text-white"
+            : "bg-orange-500 hover:bg-orange-600 text-white"
+        }`}
       >
-        Apply to POS
+        {isExpired ? "Expired" : "Apply to POS"}
       </button>
     </motion.div>
   );
 }
+

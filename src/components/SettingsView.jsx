@@ -1,19 +1,28 @@
-import { useEffect, useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import {
-  ShieldAlert,
-  Banknote,
   Store,
   Bell,
+  Banknote,
+  ShieldAlert,
   Trash2,
   Save,
 } from "lucide-react";
 import API from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 
+const sections = [
+  { id: "business", label: "Business Profile", icon: <Store size={20} /> },
+  { id: "payments", label: "Payments & Notifications", icon: <Bell size={20} /> },
+  { id: "bank", label: "Bank Account", icon: <Banknote size={20} /> },
+  { id: "security", label: "Security", icon: <ShieldAlert size={20} /> },
+  { id: "danger", label: "Danger Zone", icon: <Trash2 size={20} /> },
+];
+
 export default function SettingsView({ merchant }) {
   const { token, logout } = useContext(AuthContext);
 
+  const [activeSection, setActiveSection] = useState("business");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState("");
@@ -40,7 +49,6 @@ export default function SettingsView({ merchant }) {
 
   useEffect(() => {
     if (!merchant) return;
-
     setForm({
       business_name: merchant.business_name || "",
       phone: merchant.phone || "",
@@ -66,7 +74,6 @@ export default function SettingsView({ merchant }) {
     try {
       setSaving(true);
       setMessage("");
-
       await API.put(
         `/merchants/${merchant.id}/`,
         {
@@ -92,7 +99,6 @@ export default function SettingsView({ merchant }) {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setMessage("✅ Settings updated successfully");
     } catch {
       setMessage("❌ Failed to update settings");
@@ -106,12 +112,10 @@ export default function SettingsView({ merchant }) {
       alert("Passwords do not match");
       return;
     }
-
     await API.post("/auth/reset-password/", {
       phone: merchant.phone,
       new_password: passwords.new_password,
     });
-
     alert("✅ Password updated");
     setPasswords({ new_password: "", confirm_password: "" });
   };
@@ -124,163 +128,135 @@ export default function SettingsView({ merchant }) {
     window.location.href = "/login";
   };
 
-  return (
-    <div className="space-y-8">
-
-      {/* HEADER */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-        <p className="text-sm text-gray-500">
-          Manage your business, payments & security
-        </p>
-      </div>
-
-      {/* BUSINESS */}
-      <GlassSection title="Business Profile" icon={<Store size={18} />}>
-        <Input label="Business Name" name="business_name" value={form.business_name} onChange={handleChange} />
-        <Input label="Merchant ID" value={merchant?.id} disabled />
-        <Input label="Contact Email" name="email" value={form.email} onChange={handleChange} />
-        <Input label="Contact Phone" name="phone" value={form.phone} onChange={handleChange} />
-        <Textarea label="Address" name="address" value={form.address} onChange={handleChange} />
-      </GlassSection>
-
-      {/* PAYMENTS */}
-      <GlassSection title="Payment & Notifications" icon={<Bell size={18} />}>
-        <ToggleSwitch
-          label="Auto Settlement"
-          checked={form.auto_settlement}
-          onChange={(v) => setForm({ ...form, auto_settlement: v })}
-        />
-
-        <Select
-          label="Settlement Cycle"
-          name="settlement_cycle"
-          value={form.settlement_cycle}
-          onChange={handleChange}
-          options={["T+1", "T+2", "INSTANT"]}
-        />
-
-        <ToggleSwitch
-          label="SMS Notifications"
-          checked={form.notification_sms}
-          onChange={(v) => setForm({ ...form, notification_sms: v })}
-        />
-
-        <Input label="Notification Email" name="notification_email" value={form.notification_email} onChange={handleChange} />
-      </GlassSection>
-
-      {/* BANK */}
-      <GlassSection title="Bank Account" icon={<Banknote size={18} />}>
-        <Input label="Account Holder Name" name="holder_name" value={form.holder_name} onChange={handleChange} />
-        <Input label="Bank Name" name="bank_name" value={form.bank_name} onChange={handleChange} />
-        <Input label="Account Number" name="account_number" value={form.account_number} onChange={handleChange} />
-        <Input label="IFSC Code" name="ifsc" value={form.ifsc} onChange={handleChange} />
-      </GlassSection>
-
-      {/* SECURITY */}
-      <GlassSection title="Security" icon={<ShieldAlert size={18} />}>
-        <Input type="password" label="New Password"
-          value={passwords.new_password}
-          onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })}
-        />
-        <Input type="password" label="Confirm Password"
-          value={passwords.confirm_password}
-          onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })}
-        />
-        <button
-          onClick={updatePassword}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
-        >
-          Update Password
-        </button>
-      </GlassSection>
-
-      {/* DANGER */}
-      <motion.div
-        whileHover={{ scale: 1.01 }}
-        className="border border-red-200 bg-red-50 rounded-2xl p-6"
-      >
-        <div className="flex items-center gap-2 text-red-700 font-semibold mb-2">
-          <Trash2 size={18} /> Danger Zone
-        </div>
-
-        {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg"
-          >
-            Delete Account
-          </button>
-        ) : (
-          <div className="flex gap-3">
-            <button onClick={deleteAccount} className="bg-red-700 text-white px-4 py-2 rounded-lg">
-              Confirm Delete
+  /* ------------------ Render Section Content ------------------ */
+  const renderSection = () => {
+    switch (activeSection) {
+      case "business":
+        return (
+          <Card>
+            <Input label="Business Name" name="business_name" value={form.business_name} onChange={handleChange} />
+            <Input label="Merchant ID" value={merchant?.id} disabled />
+            <Input label="Contact Email" name="email" value={form.email} onChange={handleChange} />
+            <Input label="Contact Phone" name="phone" value={form.phone} onChange={handleChange} />
+            <Textarea label="Address" name="address" value={form.address} onChange={handleChange} />
+          </Card>
+        );
+      case "payments":
+        return (
+          <Card>
+            <ToggleSwitch label="Auto Settlement" checked={form.auto_settlement} onChange={(v) => setForm({ ...form, auto_settlement: v })} />
+            <Select label="Settlement Cycle" name="settlement_cycle" value={form.settlement_cycle} onChange={handleChange} options={["T+1", "T+2", "INSTANT"]} />
+            <ToggleSwitch label="SMS Notifications" checked={form.notification_sms} onChange={(v) => setForm({ ...form, notification_sms: v })} />
+            <Input label="Notification Email" name="notification_email" value={form.notification_email} onChange={handleChange} />
+          </Card>
+        );
+      case "bank":
+        return (
+          <Card>
+            <Input label="Account Holder Name" name="holder_name" value={form.holder_name} onChange={handleChange} />
+            <Input label="Bank Name" name="bank_name" value={form.bank_name} onChange={handleChange} />
+            <Input label="Account Number" name="account_number" value={form.account_number} onChange={handleChange} />
+            <Input label="IFSC Code" name="ifsc" value={form.ifsc} onChange={handleChange} />
+          </Card>
+        );
+      case "security":
+        return (
+          <Card>
+            <Input type="password" label="New Password" value={passwords.new_password} onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })} />
+            <Input type="password" label="Confirm Password" value={passwords.confirm_password} onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })} />
+            <button onClick={updatePassword} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+              Update Password
             </button>
-            <button onClick={() => setConfirmDelete(false)} className="border px-4 py-2 rounded-lg">
-              Cancel
+          </Card>
+        );
+      case "danger":
+        return (
+          <Card danger>
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                Delete Account
+              </button>
+            ) : (
+              <div className="flex flex-col md:flex-row gap-4">
+                <button onClick={deleteAccount} className="bg-red-700 hover:bg-red-800 text-white px-6 py-2 rounded-lg font-semibold transition">
+                  Confirm Delete
+                </button>
+                <button onClick={() => setConfirmDelete(false)} className="border px-6 py-2 rounded-lg font-semibold transition">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </Card>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="md:w-64 bg-white border-r border-gray-200 shadow-sm px-4 py-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">Settings</h2>
+        <nav className="flex flex-col gap-3">
+          {sections.map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => setActiveSection(sec.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-left font-medium transition
+                ${activeSection === sec.id ? "bg-indigo-100 text-indigo-700" : "text-gray-700 hover:bg-gray-100"}`}
+            >
+              {sec.icon} {sec.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Content Area */}
+      <main className="flex-1 p-6 md:p-12 space-y-6">
+        {renderSection()}
+
+        {/* Save Button */}
+        {activeSection !== "danger" && (
+          <div className="flex justify-end">
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition"
+            >
+              <Save size={20} />
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         )}
-      </motion.div>
 
-      {/* SAVE */}
-      <button
-        onClick={saveSettings}
-        disabled={saving}
-        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl flex items-center gap-2"
-      >
-        <Save size={18} />
-        {saving ? "Saving..." : "Save Changes"}
-      </button>
-
-      {message && <p className="text-sm">{message}</p>}
+        {message && <p className="text-sm text-gray-700">{message}</p>}
+      </main>
     </div>
   );
 }
 
-/* ---------------- UI HELPERS ---------------- */
-
-function GlassSection({ title, icon, children }) {
+/* ------------------ UI Components ------------------ */
+function Card({ children, danger }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        y: -4,
-        boxShadow: "0 20px 30px rgba(0,0,0,0.08)",
-      }}
-      className="
-        bg-white/80 backdrop-blur-xl
-        border border-gray-100
-        rounded-2xl shadow-lg
-        p-6 space-y-4
-        transition
-      "
+      whileHover={{ y: -3, boxShadow: "0 15px 25px rgba(0,0,0,0.08)" }}
+      className={`bg-white p-6 rounded-2xl border shadow-sm transition ${danger ? "border-red-200 bg-red-50" : "border-gray-100"}`}
     >
-      <div className="flex items-center gap-2 font-semibold">
-        {icon} {title}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {children}
-      </div>
+      {children}
     </motion.div>
   );
 }
 
-/* ---- TOGGLE SWITCH ---- */
 function ToggleSwitch({ label, checked, onChange }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between mb-4">
       <span className="text-sm text-gray-600">{label}</span>
       <button
         onClick={() => onChange(!checked)}
-        className={`relative w-12 h-6 rounded-full transition
-          ${checked ? "bg-green-500" : "bg-gray-300"}`}
+        className={`relative w-12 h-6 rounded-full transition ${checked ? "bg-green-500" : "bg-gray-300"}`}
       >
-        <span
-          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition
-            ${checked ? "translate-x-6" : ""}`}
-        />
+        <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition ${checked ? "translate-x-6" : ""}`} />
       </button>
     </div>
   );
@@ -288,27 +264,27 @@ function ToggleSwitch({ label, checked, onChange }) {
 
 function Input({ label, ...props }) {
   return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <input {...props} className="w-full mt-1 px-3 py-2 border rounded-lg" />
+    <div className="mb-4">
+      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <input {...props} className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none transition" />
     </div>
   );
 }
 
 function Textarea({ label, ...props }) {
   return (
-    <div className="md:col-span-2">
-      <label className="text-xs text-gray-500">{label}</label>
-      <textarea {...props} className="w-full mt-1 px-3 py-2 border rounded-lg" />
+    <div className="mb-4">
+      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <textarea {...props} className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none transition" />
     </div>
   );
 }
 
 function Select({ label, options, ...props }) {
   return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <select {...props} className="w-full mt-1 px-3 py-2 border rounded-lg">
+    <div className="mb-4">
+      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <select {...props} className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none transition">
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}

@@ -6,6 +6,9 @@ import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { OrderContext } from "../context/OrderContext";
 import { connectSocket, disconnectSocket } from "../realtime/socket";
+// import { QRCodeCanvas } from "qrcode.react";
+import Barcode from "react-barcode";
+
 
 
 /* ---------- PHONE VALIDATION ---------- */
@@ -222,6 +225,7 @@ export default function Coupons() {
                   coupon={coupon}
                   orderAmount={orderAmount}
                   onApply={applyToPOS}
+                  token={token}
                 />
               </div>
             )}
@@ -292,6 +296,7 @@ export default function Coupons() {
                         coupon={c}
                         orderAmount={orderAmount}
                         onApply={applyToPOS}
+                        token={token}
                       />
                     ))}
                   </div>
@@ -306,7 +311,42 @@ export default function Coupons() {
 }
 
 /* ---------- COUPON CARD ---------- */
-function CouponCard({ coupon, orderAmount, onApply }) {
+function CouponCard({ coupon, orderAmount, onApply, token }) {
+  const [qrToken, setQrToken] = useState(null);
+
+  // const generateQR = async () => {
+  //   try {
+  //     const res = await API.post(
+  //       `/coupons/qr/${coupon.id}/`,
+  //       {}
+  //     );
+  //     setQrToken(res.data.qr_token);
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert(err.response?.data?.error || "Failed to generate QR");
+  //   }
+  // };
+
+  const generateQR = async () => {
+    try {
+      const res = await API.post(
+        `/coupons/qr/${coupon.id}/`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setQrToken(res.data.qr_token);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to generate QR");
+    }
+  };
+
+
+
   const [timeLeft, setTimeLeft] = useState(
     getTimeLeft(coupon.expiry_date)
   );
@@ -324,9 +364,8 @@ function CouponCard({ coupon, orderAmount, onApply }) {
   return (
     <motion.div
       whileHover={{ scale: !isExpired ? 1.02 : 1 }}
-      className={`rounded-2xl border p-6 ${
-        isExpired ? "opacity-50 bg-gray-100" : ""
-      }`}
+      className={`rounded-2xl border p-6 ${isExpired ? "opacity-50 bg-gray-100" : ""
+        }`}
     >
       <div className="text-sm font-bold text-emerald-600 mb-2">
         {coupon.discount_type === "percent"
@@ -351,21 +390,44 @@ function CouponCard({ coupon, orderAmount, onApply }) {
         </p>
       ) : (
         <p className="mt-2 text-xs text-red-600 font-semibold">
-           Coupon Expired
+          Coupon Expired
         </p>
       )}
 
       <button
         disabled={isExpired}
         onClick={() => onApply(coupon)}
-        className={`mt-4 w-full py-2 rounded-xl font-semibold ${
-          isExpired
-            ? "bg-gray-400 cursor-not-allowed text-white"
-            : "bg-orange-500 hover:bg-orange-600 text-white"
-        }`}
+        className={`mt-4 w-full py-2 rounded-xl font-semibold ${isExpired
+          ? "bg-gray-400 cursor-not-allowed text-white"
+          : "bg-orange-500 hover:bg-orange-600 text-white"
+          }`}
       >
         {isExpired ? "Expired" : "Apply to POS"}
       </button>
+
+      <button
+        onClick={generateQR}
+        className="mt-3 w-full bg-blue-600 text-white rounded-lg py-2"
+      >
+        Show QR
+      </button>
+
+      {qrToken && (
+        <div className="mt-4 flex justify-center">
+          {/* <QRCodeCanvas
+            value={`${window.location.origin}/scan-coupon?token=${qrToken}`}
+            size={180}
+          /> */}
+          <Barcode
+            value={qrToken}
+            format="CODE128"
+            width={0.2}
+            height={80}
+            displayValue={false}
+          />
+
+        </div>
+      )}
     </motion.div>
   );
 }

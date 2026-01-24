@@ -25,7 +25,7 @@ import Notifications from "./pages/Notifications";
 // import TransactionsPage from "./pages/TransactionsPage";
 import { OrderProvider } from "./context/OrderContext";
 import { RealtimeProvider } from "./context/RealtimeContext";
-
+import ScanCoupon from "./pages/ScanCoupon";
 
 export default function App() {
   return (
@@ -59,7 +59,7 @@ export default function App() {
 
               {/* <Route path="/dashboard/transactions" element={<TransactionsPage />} /> */}
 
-
+              <Route path="/scan-coupon" element={<ScanCoupon />} />
             </Routes>
           </OrderProvider>
         </BrowserRouter>

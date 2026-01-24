@@ -31,3 +31,25 @@ export const createCoupon = async (data, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+
+// Generate QR for coupon
+export const generateCouponQR = async (couponId, token) => {
+  return axios.post(
+    `${API}/qr/${couponId}/`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+};
+
+//  Scan QR coupon
+export const scanCouponQR = async (qrToken, token, orderAmount = 0) => {
+  return axios.post(
+    `${API}/scan/`,
+    {
+      token: qrToken,
+      order_amount: orderAmount,
+    },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+};

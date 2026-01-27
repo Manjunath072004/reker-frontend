@@ -8,6 +8,8 @@ import { OrderContext } from "../context/OrderContext";
 import { connectSocket, disconnectSocket } from "../realtime/socket";
 // import { QRCodeCanvas } from "qrcode.react";
 import Barcode from "react-barcode";
+import { getCustomerBarcodes } from "../api/coupons";
+
 
 
 
@@ -45,6 +47,8 @@ const getTimeLeft = (expiryDate) => {
 
 
 export default function Coupons() {
+  const [barcodes, setBarcodes] = useState([]);
+
   const { token, user } = useContext(AuthContext);
   const { orderAmount } = useContext(OrderContext);
   const navigate = useNavigate();
@@ -142,6 +146,33 @@ export default function Coupons() {
     }
   };
 
+  const fetchCustomerBarcodes = async () => {
+    setError("");
+    setBarcodes([]);
+
+    if (!phone.trim()) {
+      setError("Please enter customer phone number");
+      return;
+    }
+
+    if (!isValidIndianPhone(phone)) {
+      setError("Enter valid 10-digit Indian phone number");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await getCustomerBarcodes(phone, token);
+      setBarcodes(res.data);
+    } catch (err) {
+      setError(err.response?.data?.error || "No barcodes available");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     if (!user?.id) return;
 
@@ -195,6 +226,91 @@ export default function Coupons() {
             {error}
           </div>
         )}
+
+        {/* ================= BARCODE FIRST ================= */}
+        <div className="bg-white rounded-3xl shadow p-8">
+          <h2 className="text-xl font-semibold mb-4">
+            Scan Customer Coupons
+          </h2>
+
+          <p className="text-sm text-gray-500 mb-6">
+            Fast checkout — scan customer coupon directly
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-3 mb-6">
+            <input
+              placeholder="Customer Phone"
+              value={phone}
+              maxLength={10}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              className="flex-1 p-4 rounded-xl border"
+            />
+
+            <button
+              onClick={fetchCustomerBarcodes}
+              disabled={loading}
+              className="px-6 py-3 bg-black text-white rounded-xl font-semibold"
+            >
+              {loading ? "Loading..." : "Open Barcode Scanner"}
+            </button>
+          </div>
+
+          {/* BARCODE LIST */}
+          {barcodes.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {barcodes.map((b, idx) => (
+                <motion.div
+                  key={idx}
+                  whileHover={{ scale: 1.03 }}
+                  className="bg-gray-50 p-4 rounded-2xl border text-center"
+                >
+                  <h3 className="font-bold mb-2">{b.coupon.code}</h3>
+
+                  {/* <Barcode
+                    value={b.barcode_token}
+                    format="CODE128"
+                    height={80}
+                  /> */}
+
+                  {/* <Barcode
+                    value={b.barcode_value}
+                    format="CODE128"
+                    height={80}
+                    displayValue={true}
+                  /> */}
+
+                  <div className="flex justify-center">
+                    <Barcode
+                      value={b.barcode_value}
+                      format="CODE128"
+                      height={80}
+                      displayValue={true}
+                    />
+                  </div>
+
+
+                  {/* <button
+                    onClick={() =>
+                      navigate("/scan-coupon?token=" + b.barcode_token)
+                    }
+                    className="mt-4 w-full bg-emerald-600 text-white rounded-lg py-2 font-semibold"
+                  >
+                    Scan & Apply
+                  </button> */}
+                  <button
+                    onClick={() =>
+                      navigate("/scan-coupon?code=" + b.barcode_value)
+                    }
+                  >
+                    Scan & Apply
+                  </button>
+
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
 
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -314,39 +430,6 @@ export default function Coupons() {
 function CouponCard({ coupon, orderAmount, onApply, token }) {
   const [qrToken, setQrToken] = useState(null);
 
-  // const generateQR = async () => {
-  //   try {
-  //     const res = await API.post(
-  //       `/coupons/qr/${coupon.id}/`,
-  //       {}
-  //     );
-  //     setQrToken(res.data.qr_token);
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert(err.response?.data?.error || "Failed to generate QR");
-  //   }
-  // };
-
-  const generateQR = async () => {
-    try {
-      const res = await API.post(
-        `/coupons/qr/${coupon.id}/`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setQrToken(res.data.qr_token);
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.error || "Failed to generate QR");
-    }
-  };
-
-
-
   const [timeLeft, setTimeLeft] = useState(
     getTimeLeft(coupon.expiry_date)
   );
@@ -404,30 +487,6 @@ function CouponCard({ coupon, orderAmount, onApply, token }) {
       >
         {isExpired ? "Expired" : "Apply to POS"}
       </button>
-
-      <button
-        onClick={generateQR}
-        className="mt-3 w-full bg-blue-600 text-white rounded-lg py-2"
-      >
-        Show QR
-      </button>
-
-      {qrToken && (
-        <div className="mt-4 flex justify-center">
-          {/* <QRCodeCanvas
-            value={`${window.location.origin}/scan-coupon?token=${qrToken}`}
-            size={180}
-          /> */}
-          <Barcode
-            value={qrToken}
-            format="CODE128"
-            width={0.2}
-            height={80}
-            displayValue={false}
-          />
-
-        </div>
-      )}
     </motion.div>
   );
 }

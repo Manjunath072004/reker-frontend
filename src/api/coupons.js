@@ -55,10 +55,15 @@ export const scanCouponQR = async (qrToken, token, orderAmount = 0) => {
 };
 
 
-export const getCustomerBarcodes = async (phone, token) => {
+export const getBestCouponBarcode = async (phone, orderAmount, token) => {
   return axios.post(
-    "http://localhost:8000/api/coupons/customer-barcodes/",
-    { phone },
-    { headers: { Authorization: `Bearer ${token}` } }
+    "http://localhost:8000/api/coupons/best-barcode/",
+    {
+      phone,
+      order_amount: orderAmount,
+    },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
 };

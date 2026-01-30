@@ -8,9 +8,7 @@ import { OrderContext } from "../context/OrderContext";
 import { connectSocket, disconnectSocket } from "../realtime/socket";
 // import { QRCodeCanvas } from "qrcode.react";
 import Barcode from "react-barcode";
-import { getCustomerBarcodes } from "../api/coupons";
-
-
+import { getBestCouponBarcode } from "../api/coupons";
 
 
 /* ---------- PHONE VALIDATION ---------- */
@@ -47,7 +45,10 @@ const getTimeLeft = (expiryDate) => {
 
 
 export default function Coupons() {
-  const [barcodes, setBarcodes] = useState([]);
+  const [bestBarcode, setBestBarcode] = useState(null);
+  const [otherBarcodes, setOtherBarcodes] = useState([]);
+  const [showOtherBarcodes, setShowOtherBarcodes] = useState(false);
+
 
   const { token, user } = useContext(AuthContext);
   const { orderAmount } = useContext(OrderContext);
@@ -146,9 +147,9 @@ export default function Coupons() {
     }
   };
 
-  const fetchCustomerBarcodes = async () => {
+  const fetchBestBarcode = async () => {
     setError("");
-    setBarcodes([]);
+    setBestBarcode(null);
 
     if (!phone.trim()) {
       setError("Please enter customer phone number");
@@ -160,18 +161,29 @@ export default function Coupons() {
       return;
     }
 
+    if (!orderAmount || Number(orderAmount) <= 0) {
+      setError("Order amount missing. Please enter amount in POS.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await getCustomerBarcodes(phone, token);
-      setBarcodes(res.data);
+      const res = await getBestCouponBarcode(
+        phone,
+        Number(orderAmount),
+        token
+      );
+      setBestBarcode(res.data.best_barcode);
+      setOtherBarcodes(res.data.other_barcodes || []);
+      setShowOtherBarcodes(false);
+
     } catch (err) {
-      setError(err.response?.data?.error || "No barcodes available");
+      setError(err.response?.data?.error || "No applicable coupon found");
     } finally {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (!user?.id) return;
@@ -230,11 +242,11 @@ export default function Coupons() {
         {/* ================= BARCODE FIRST ================= */}
         <div className="bg-white rounded-3xl shadow p-8">
           <h2 className="text-xl font-semibold mb-4">
-            Scan Customer Coupons
+            Scan Customer Coupon
           </h2>
 
           <p className="text-sm text-gray-500 mb-6">
-            Fast checkout — scan customer coupon directly
+            Best coupon is automatically selected for faster checkout
           </p>
 
           <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -247,70 +259,97 @@ export default function Coupons() {
             />
 
             <button
-              onClick={fetchCustomerBarcodes}
+              onClick={fetchBestBarcode}
               disabled={loading}
               className="px-6 py-3 bg-black text-white rounded-xl font-semibold"
             >
-              {loading ? "Loading..." : "Open Barcode Scanner"}
+              {loading ? "Finding Best Coupon..." : "Find Best Coupon"}
             </button>
           </div>
 
-          {/* BARCODE LIST */}
-          {barcodes.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {barcodes.map((b, idx) => (
+          {/* ✅ SINGLE BEST BARCODE */}
+          {bestBarcode && (
+            <div className="bg-green-50 border border-green-400 rounded-2xl p-6 text-center max-w-md mx-auto">
+              <h3 className="text-lg font-bold text-green-700 mb-2">
+                🎯 Best Coupon Applied Automatically
+              </h3>
+
+              <p className="text-sm text-gray-600 mb-3">
+                {bestBarcode.coupon.code} — Save ₹{bestBarcode.discount}
+              </p>
+
+              <div className="flex justify-center">
+                <Barcode
+                  value={bestBarcode.barcode_value}
+                  format="CODE128"
+                  height={80}
+                  displayValue
+                />
+              </div>
+
+              <button
+                onClick={() =>
+                  navigate("/scan-coupon?code=" + bestBarcode.barcode_value)
+                }
+                className="mt-4 bg-green-600 text-white px-6 py-2 rounded-xl font-semibold"
+              >
+                Scan & Apply
+              </button>
+            </div>
+          )}
+
+          {/* 👁 VIEW OTHER COUPONS BUTTON */}
+          {otherBarcodes.length > 0 && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setShowOtherBarcodes(!showOtherBarcodes)}
+                className="px-6 py-2 border rounded-xl font-semibold"
+              >
+                {showOtherBarcodes
+                  ? "Hide Other Coupons"
+                  : `View Other Coupons (${otherBarcodes.length})`}
+              </button>
+            </div>
+          )}
+
+          {/* 📦 OTHER COUPON BARCODES */}
+          {showOtherBarcodes && (
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {otherBarcodes.map((b, idx) => (
                 <motion.div
                   key={idx}
                   whileHover={{ scale: 1.03 }}
                   className="bg-gray-50 p-4 rounded-2xl border text-center"
                 >
-                  <h3 className="font-bold mb-2">{b.coupon.code}</h3>
+                  <h3 className="font-bold text-sm mb-1">{b.coupon.code}</h3>
 
-                  {/* <Barcode
-                    value={b.barcode_token}
-                    format="CODE128"
-                    height={80}
-                  /> */}
-
-                  {/* <Barcode
-                    value={b.barcode_value}
-                    format="CODE128"
-                    height={80}
-                    displayValue={true}
-                  /> */}
+                  <p className="text-xs text-green-600 font-semibold mb-2">
+                    Save ₹{b.discount}
+                  </p>
 
                   <div className="flex justify-center">
                     <Barcode
                       value={b.barcode_value}
                       format="CODE128"
-                      height={80}
-                      displayValue={true}
+                      height={70}
+                      displayValue={false}
                     />
                   </div>
 
-
-                  {/* <button
-                    onClick={() =>
-                      navigate("/scan-coupon?token=" + b.barcode_token)
-                    }
-                    className="mt-4 w-full bg-emerald-600 text-white rounded-lg py-2 font-semibold"
-                  >
-                    Scan & Apply
-                  </button> */}
                   <button
                     onClick={() =>
                       navigate("/scan-coupon?code=" + b.barcode_value)
                     }
+                    className="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold"
                   >
                     Scan & Apply
                   </button>
-
                 </motion.div>
               ))}
             </div>
           )}
-        </div>
 
+        </div>
 
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

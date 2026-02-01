@@ -43,6 +43,13 @@ const getTimeLeft = (expiryDate) => {
   return { hours, minutes, seconds };
 };
 
+/* ---------- EXPIRY CHECK ---------- */
+const isExpiringSoon = (expiryDate) => {
+  const now = new Date();
+  const exp = new Date(expiryDate);
+  return exp - now <= 24 * 60 * 60 * 1000; // 24 hours
+};
+
 
 export default function Coupons() {
   const [bestBarcode, setBestBarcode] = useState(null);
@@ -239,7 +246,7 @@ export default function Coupons() {
           </div>
         )}
 
-        {/* ================= BARCODE FIRST ================= */}
+        {/* -------------- BARCODE FIRST ------------- */}
         <div className="bg-white rounded-3xl shadow p-8">
           <h2 className="text-xl font-semibold mb-4">
             Scan Customer Coupon
@@ -267,16 +274,23 @@ export default function Coupons() {
             </button>
           </div>
 
-          {/* ✅ SINGLE BEST BARCODE */}
+          {/*  SINGLE BEST BARCODE */}
           {bestBarcode && (
             <div className="bg-green-50 border border-green-400 rounded-2xl p-6 text-center max-w-md mx-auto">
               <h3 className="text-lg font-bold text-green-700 mb-2">
-                🎯 Best Coupon Applied Automatically
+                🎯 Best Savings Applied Automatically
               </h3>
+
+              {isExpiringSoon(bestBarcode.coupon.expiry_date) && (
+                <div className="mb-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full inline-block">
+                  ⏰ Expiring Today · Use now or lose it
+                </div>
+              )}
 
               <p className="text-sm text-gray-600 mb-3">
                 {bestBarcode.coupon.code} — Save ₹{bestBarcode.discount}
               </p>
+
 
               <div className="flex justify-center">
                 <Barcode
@@ -298,7 +312,7 @@ export default function Coupons() {
             </div>
           )}
 
-          {/* 👁 VIEW OTHER COUPONS BUTTON */}
+          {/*  VIEW OTHER COUPONS BUTTON */}
           {otherBarcodes.length > 0 && (
             <div className="mt-6 text-center">
               <button
@@ -312,7 +326,7 @@ export default function Coupons() {
             </div>
           )}
 
-          {/* 📦 OTHER COUPON BARCODES */}
+          {/*  OTHER COUPON BARCODES */}
           {showOtherBarcodes && (
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {otherBarcodes.map((b, idx) => (
@@ -321,6 +335,12 @@ export default function Coupons() {
                   whileHover={{ scale: 1.03 }}
                   className="bg-gray-50 p-4 rounded-2xl border text-center"
                 >
+                  {isExpiringSoon(b.coupon.expiry_date) && (
+                    <div className="mb-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full inline-block">
+                      ⏰ Expiring Today · Use now or lose it
+                    </div>
+                  )}
+
                   <h3 className="font-bold text-sm mb-1">{b.coupon.code}</h3>
 
                   <p className="text-xs text-green-600 font-semibold mb-2">
@@ -505,7 +525,13 @@ function CouponCard({ coupon, orderAmount, onApply, token }) {
         Save ₹{calculateCouponDiscount(coupon, orderAmount)}
       </p>
 
-      {/* ⏳ COUNTDOWN */}
+      {isExpiringSoon(coupon.expiry_date) && !isExpired && (
+        <div className="mt-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full inline-block">
+          Expiring Soon - Use now or lose it
+        </div>
+      )}
+
+      {/*  COUNTDOWN */}
       {timeLeft ? (
         <p className="mt-2 text-xs text-orange-600 font-semibold">
           ⏳ Expires in {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s

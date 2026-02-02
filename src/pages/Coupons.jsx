@@ -52,6 +52,10 @@ const isExpiringSoon = (expiryDate) => {
 
 
 export default function Coupons() {
+  const [expiringBarcode, setExpiringBarcode] = useState(null);
+  const [showExpiryPrompt, setShowExpiryPrompt] = useState(false);
+  const [expiryDecisionMade, setExpiryDecisionMade] = useState(false);
+
   const [bestBarcode, setBestBarcode] = useState(null);
   const [otherBarcodes, setOtherBarcodes] = useState([]);
   const [showOtherBarcodes, setShowOtherBarcodes] = useState(false);
@@ -80,6 +84,12 @@ export default function Coupons() {
       setError("");
     }
   }, [orderAmount]);
+
+  useEffect(() => {
+    setExpiryDecisionMade(false);
+    setShowExpiryPrompt(false);
+  }, [phone]);
+
 
   /* ---------- VERIFY MANUAL COUPON ---------- */
   const handleVerify = async () => {
@@ -157,6 +167,7 @@ export default function Coupons() {
   const fetchBestBarcode = async () => {
     setError("");
     setBestBarcode(null);
+    setExpiryDecisionMade(false);
 
     if (!phone.trim()) {
       setError("Please enter customer phone number");
@@ -182,8 +193,12 @@ export default function Coupons() {
         token
       );
       setBestBarcode(res.data.best_barcode);
+      setExpiringBarcode(res.data.expiring_barcode || null);
       setOtherBarcodes(res.data.other_barcodes || []);
-      setShowOtherBarcodes(false);
+
+      if (res.data.has_expiring_override && !expiryDecisionMade) {
+        setShowExpiryPrompt(true);
+      }
 
     } catch (err) {
       setError(err.response?.data?.error || "No applicable coupon found");
@@ -246,7 +261,7 @@ export default function Coupons() {
           </div>
         )}
 
-        {/* -------------- BARCODE FIRST ------------- */}
+        {/* ================= BARCODE FIRST ================= */}
         <div className="bg-white rounded-3xl shadow p-8">
           <h2 className="text-xl font-semibold mb-4">
             Scan Customer Coupon
@@ -309,6 +324,44 @@ export default function Coupons() {
               >
                 Scan & Apply
               </button>
+            </div>
+          )}
+
+          {showExpiryPrompt && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-300 p-4 rounded-xl">
+              <p className="text-sm font-semibold text-yellow-800">
+                ⚠ You have a coupon expiring today!
+              </p>
+
+              <p className="text-xs text-gray-700 mt-1">
+                Applying it now may give slightly less discount, but it will expire soon.
+              </p>
+
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => {
+                    if (expiringBarcode) {
+                      setBestBarcode(expiringBarcode); //  INSTANT REPLACE
+                    }
+                    setShowExpiryPrompt(false);
+                    setExpiryDecisionMade(true);
+                  }}
+
+                  className="flex-1 bg-yellow-600 text-white py-2 rounded-lg text-sm font-semibold"
+                >
+                  Use Expiring Coupon
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowExpiryPrompt(false);
+                    setExpiryDecisionMade(true);
+                  }}
+                  className="flex-1 border py-2 rounded-lg text-sm font-semibold"
+                >
+                  Keep Best Coupon
+                </button>
+              </div>
             </div>
           )}
 
@@ -531,7 +584,7 @@ function CouponCard({ coupon, orderAmount, onApply, token }) {
         </div>
       )}
 
-      {/*  COUNTDOWN */}
+      {/* COUNTDOWN */}
       {timeLeft ? (
         <p className="mt-2 text-xs text-orange-600 font-semibold">
           ⏳ Expires in {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s

@@ -70,6 +70,8 @@ export default function Coupons() {
   const [coupon, setCoupon] = useState(null);
   const [phone, setPhone] = useState("");
 
+  const [expiringCoupon, setExpiringCoupon] = useState(null);
+  const [showPhoneExpiryPrompt, setShowPhoneExpiryPrompt] = useState(false);
   const [bestCoupon, setBestCoupon] = useState(null);
   const [otherCoupons, setOtherCoupons] = useState([]);
 
@@ -157,6 +159,12 @@ export default function Coupons() {
 
       setBestCoupon(data.best_coupon || null);
       setOtherCoupons(data.other_coupons || []);
+      setExpiringCoupon(data.expiring_coupon || null);
+
+      if (data.has_expiring_override) {
+        setShowPhoneExpiryPrompt(true);
+      }
+
     } catch (err) {
       setError(err.response?.data?.error || "Unable to fetch coupons");
     } finally {
@@ -289,7 +297,7 @@ export default function Coupons() {
             </button>
           </div>
 
-          {/*  SINGLE BEST BARCODE */}
+          {/* SINGLE BEST BARCODE */}
           {bestBarcode && (
             <div className="bg-green-50 border border-green-400 rounded-2xl p-6 text-center max-w-md mx-auto">
               <h3 className="text-lg font-bold text-green-700 mb-2">
@@ -341,8 +349,16 @@ export default function Coupons() {
                 <button
                   onClick={() => {
                     if (expiringBarcode) {
-                      setBestBarcode(expiringBarcode); //  INSTANT REPLACE
+                      setBestBarcode(expiringBarcode);
+
+                      // Remove expiring coupon from others
+                      setOtherBarcodes((prev) =>
+                        prev.filter(
+                          (b) => b.coupon.id !== expiringBarcode.coupon.id
+                        )
+                      );
                     }
+
                     setShowExpiryPrompt(false);
                     setExpiryDecisionMade(true);
                   }}
@@ -365,7 +381,7 @@ export default function Coupons() {
             </div>
           )}
 
-          {/*  VIEW OTHER COUPONS BUTTON */}
+          {/* VIEW OTHER COUPONS BUTTON */}
           {otherBarcodes.length > 0 && (
             <div className="mt-6 text-center">
               <button
@@ -379,7 +395,7 @@ export default function Coupons() {
             </div>
           )}
 
-          {/*  OTHER COUPON BARCODES */}
+          {/* OTHER COUPON BARCODES */}
           {showOtherBarcodes && (
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {otherBarcodes.map((b, idx) => (
@@ -499,6 +515,43 @@ export default function Coupons() {
                     className="bg-white text-emerald-700 px-5 py-2 rounded-xl font-semibold"
                   >
                     Apply
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showPhoneExpiryPrompt && expiringCoupon && (
+              <div className="mb-6 bg-yellow-50 border border-yellow-300 p-4 rounded-xl">
+                <p className="text-sm font-semibold text-yellow-800">
+                  ⚠ Coupon expiring today!
+                </p>
+
+                <p className="text-xs text-gray-700 mt-1">
+                  This coupon will expire soon. Apply it now before it’s gone.
+                </p>
+
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={() => {
+                      setBestCoupon(expiringCoupon);
+
+                      // remove expiring coupon from other list
+                      setOtherCoupons((prev) =>
+                        prev.filter((c) => c.id !== expiringCoupon.id)
+                      );
+
+                      setShowPhoneExpiryPrompt(false);
+                    }}
+                    className="flex-1 bg-yellow-600 text-white py-2 rounded-lg text-sm font-semibold"
+                  >
+                    Use Expiring Coupon
+                  </button>
+
+                  <button
+                    onClick={() => setShowPhoneExpiryPrompt(false)}
+                    className="flex-1 border py-2 rounded-lg text-sm font-semibold"
+                  >
+                    Keep Best Coupon
                   </button>
                 </div>
               </div>
